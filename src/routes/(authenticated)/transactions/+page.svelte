@@ -3,8 +3,9 @@
 	import { goto } from '$app/navigation';
 	import { onMount } from 'svelte';
 	import TransactionList from '$lib/components/TransactionList.svelte';
+	import TransactionPopup from '$lib/components/TransactionPopup.svelte';
 	import { 
-		Plus, Search, Filter, ChevronDown, ListOrdered, X, Check
+		Plus, Search, Filter, ChevronDown, ListOrdered, X, Check, Trash2
 	} from 'lucide-svelte';
 
 	// Parse URL params reactively
@@ -40,6 +41,49 @@
 
 	let isFilterModalOpen = $state(false);
 	let isCategoryDropdownOpen = $state(false);
+	
+	let isPopupOpen = $state(false);
+	let selectedTransaction = $state<any>(null);
+
+	let isDeleteConfirmOpen = $state(false);
+	let transactionToDelete = $state<any>(null);
+	let isDeleting = $state(false);
+
+	function openAddPopup() {
+		selectedTransaction = null;
+		isPopupOpen = true;
+	}
+
+	function closePopup() {
+		isPopupOpen = false;
+	}
+
+	function handleTransactionSuccess() {
+		loadData();
+	}
+
+	async function confirmDelete() {
+		if (!transactionToDelete) return;
+		isDeleting = true;
+		try {
+			const token = localStorage.getItem('authToken');
+			const res = await fetch(`/api/Transactions/${transactionToDelete.id}`, {
+				method: 'DELETE',
+				headers: { 'Authorization': `Bearer ${token}` }
+			});
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+				throw new Error(errorData.error || errorData.message || 'Failed to delete transaction');
+			}
+			isDeleteConfirmOpen = false;
+			transactionToDelete = null;
+			loadData();
+		} catch (error: any) {
+			alert(error.message);
+		} finally {
+			isDeleting = false;
+		}
+	}
 	
 	let draftFrom = $state('');
 	let draftTo = $state('');
@@ -192,6 +236,7 @@
 		class="fixed bottom-24 lg:bottom-10 right-6 lg:right-10 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
 		aria-label="Add Transaction"
 		title="Add Transaction"
+		onclick={openAddPopup}
 	>
 		<Plus size={28} strokeWidth={2.5} />
 	</button>
@@ -234,6 +279,8 @@
 			{categories} 
 			{isLoading} 
 			{errorMessage} 
+			onedit={(tx) => { selectedTransaction = tx; isPopupOpen = true; }}
+			ondelete={(tx) => { transactionToDelete = tx; isDeleteConfirmOpen = true; }}
 		/>
 	</div>
 </div>
@@ -257,7 +304,8 @@
 			</div>
 
 			<!-- Body -->
-			<div class="p-6 space-y-4 sm:space-y-6">
+			<form onsubmit={(e) => { e.preventDefault(); applyFilter(); }}>
+				<div class="p-6 space-y-4 sm:space-y-6">
 				<!-- Search -->
 				<div class="relative w-full">
 					<Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -279,6 +327,7 @@
 						</label>
 						
 						<button 
+							type="button"
 							onclick={() => isCategoryDropdownOpen = !isCategoryDropdownOpen}
 							class="w-full flex items-center justify-between px-4 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground text-left"
 						>
@@ -298,14 +347,15 @@
 							<div class="absolute z-30 left-0 right-0 top-full mt-2 bg-popover border border-border/50 rounded-xl shadow-lg overflow-hidden flex flex-col">
 								<!-- Utility buttons -->
 								<div class="flex items-center justify-between p-2 border-b border-border/50 bg-secondary/10">
-									<button onclick={selectAllCategories} class="text-xs font-semibold text-primary hover:underline px-2 py-1">Select All</button>
-									<button onclick={clearAllCategories} class="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline px-2 py-1">Clear All</button>
+									<button type="button" onclick={selectAllCategories} class="text-xs font-semibold text-primary hover:underline px-2 py-1">Select All</button>
+									<button type="button" onclick={clearAllCategories} class="text-xs font-semibold text-muted-foreground hover:text-foreground hover:underline px-2 py-1">Clear All</button>
 								</div>
 								
 								<!-- List -->
 								<div class="max-h-60 overflow-y-auto p-2 space-y-1">
 									{#each categories as cat}
 										<button 
+											type="button"
 											onclick={() => toggleCategorySelect(cat.id)}
 											class="w-full flex items-center justify-between px-3 py-2 rounded-lg hover:bg-secondary/50 transition-colors text-sm text-left"
 										>
@@ -358,6 +408,7 @@
 			<!-- Footer -->
 			<div class="p-6 border-t border-border/50 bg-card/50 flex flex-col-reverse sm:flex-row justify-between gap-3">
 				<button 
+					type="button"
 					onclick={resetFilter}
 					class="px-5 py-2.5 text-sm font-semibold text-muted-foreground hover:text-foreground transition-colors"
 				>
@@ -365,10 +416,56 @@
 				</button>
 				
 				<button 
-					onclick={applyFilter}
+					type="submit"
 					class="px-5 py-2.5 bg-primary text-primary-foreground text-sm font-semibold rounded-xl hover:opacity-90 transition-opacity shadow-sm"
 				>
 					Apply Filters
+				</button>
+			</div>
+			</form>
+		</div>
+	</div>
+{/if}
+
+<TransactionPopup 
+	isOpen={isPopupOpen} 
+	onClose={closePopup} 
+	onSuccess={handleTransactionSuccess} 
+	{categories} 
+	transaction={selectedTransaction} 
+/>
+
+{#if isDeleteConfirmOpen}
+	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
+		<!-- svelte-ignore a11y_click_events_have_key_events -->
+		<!-- svelte-ignore a11y_no_static_element_interactions -->
+		<div class="absolute inset-0" onclick={() => !isDeleting && (isDeleteConfirmOpen = false)}></div>
+		
+		<div class="relative w-full max-w-sm bg-card border border-border/50 rounded-3xl shadow-xl p-6 flex flex-col items-center text-center animate-in fade-in zoom-in-95 duration-200">
+			<div class="w-12 h-12 rounded-full bg-destructive/10 text-destructive flex items-center justify-center mb-4">
+				<Trash2 size={24} />
+			</div>
+			<h3 class="text-lg font-bold text-foreground mb-2">Delete Transaction?</h3>
+			<p class="text-sm text-muted-foreground mb-6">
+				Are you sure you want to delete this transaction? This action cannot be undone.
+			</p>
+			<div class="flex gap-3 w-full">
+				<button 
+					onclick={() => isDeleteConfirmOpen = false} 
+					disabled={isDeleting}
+					class="flex-1 px-4 py-2.5 rounded-xl font-semibold bg-secondary/50 hover:bg-secondary text-foreground transition-colors"
+				>
+					Cancel
+				</button>
+				<button 
+					onclick={confirmDelete}
+					disabled={isDeleting}
+					class="flex-1 px-4 py-2.5 rounded-xl font-semibold bg-destructive text-destructive-foreground hover:opacity-90 transition-opacity flex items-center justify-center gap-2"
+				>
+					{#if isDeleting}
+						<span class="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></span>
+					{/if}
+					Delete
 				</button>
 			</div>
 		</div>

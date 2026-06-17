@@ -3,20 +3,41 @@
 		Banknote, TrendingUp, Landmark, PiggyBank, Wallet,
 		HeartHandshake, Gift, Home, Zap, Building, ShoppingCart, Stethoscope,
 		Plane, Utensils, Repeat, Ticket, Briefcase, Baby, PawPrint, Car,
-		FileText, HelpCircle, LayoutGrid, MoreVertical
+		FileText, HelpCircle, LayoutGrid, MoreVertical, Pencil, Trash2
 	} from 'lucide-svelte';
+	import { onMount } from 'svelte';
 
 	let { 
 		transactions = [],
 		categories = [],
 		isLoading = false,
-		errorMessage = ''
+		errorMessage = '',
+		onedit = (tx: any) => {},
+		ondelete = (tx: any) => {}
 	} = $props<{
 		transactions?: any[];
 		categories?: any[];
 		isLoading?: boolean;
 		errorMessage?: string;
+		onedit?: (tx: any) => void;
+		ondelete?: (tx: any) => void;
 	}>();
+
+	let openDropdownId = $state<string | null>(null);
+
+	function handleOutsideClick(event: MouseEvent) {
+		const target = event.target as HTMLElement;
+		if (!target.closest('.action-dropdown-container')) {
+			openDropdownId = null;
+		}
+	}
+
+	onMount(() => {
+		document.addEventListener('click', handleOutsideClick);
+		return () => {
+			document.removeEventListener('click', handleOutsideClick);
+		};
+	});
 
 	function getCategoryName(categoryId: string): string {
 		const cat = categories.find((c: any) => c.id === categoryId);
@@ -69,9 +90,9 @@
 		}
 	}
 
-	function formatCurrency(amount: number | string) {
+	function formatCurrency(amount: number | string, currency: string = 'USD') {
 		const val = typeof amount === 'string' ? parseFloat(amount) : amount;
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(val);
+		return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(val);
 	}
 
 	function formatDate(dateString: string) {
@@ -123,13 +144,44 @@
 						<td class="px-6 py-4 text-muted-foreground font-medium">
 							{formatDate(tx.date || tx.transactionDate || new Date().toISOString())}
 						</td>
-						<td class="px-6 py-4 font-bold {isIncome ? 'text-green-600' : 'text-red-600'}">
-							{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.amount)))}
+						<td class="px-6 py-4">
+							<div class="font-bold {isIncome ? 'text-green-600' : 'text-red-600'}">
+								{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.amount)))}
+							</div>
+							{#if tx.baseAmount && parseFloat(tx.baseAmount) !== parseFloat(tx.amount)}
+								<div class="text-xs text-muted-foreground mt-0.5 font-medium">
+									{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.baseAmount)), tx.currency || 'PKR')}
+								</div>
+							{/if}
 						</td>
-						<td class="px-6 py-4 text-right">
-							<button class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors">
+						<td class="px-6 py-4 text-right relative action-dropdown-container">
+							<button 
+								onclick={() => {
+									console.log('Toggling dropdown for transaction ID:', tx.id);
+									openDropdownId = openDropdownId === tx.id ? null : tx.id
+								}}
+								class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary/50 rounded-lg transition-colors"
+							>
 								<MoreVertical size={18} />
 							</button>
+							{#if openDropdownId === tx.id}
+								<div class="absolute right-6 top-full mt-1 w-36 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-1 flex flex-col">
+									<button 
+										onclick={() => { openDropdownId = null; onedit(tx); }} 
+										class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors flex items-center gap-2 text-foreground"
+									>
+										<Pencil size={14} />
+										Edit
+									</button>
+									<button 
+										onclick={() => { openDropdownId = null; ondelete(tx); }} 
+										class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-destructive/10 transition-colors flex items-center gap-2 text-destructive"
+									>
+										<Trash2 size={14} />
+										Delete
+									</button>
+								</div>
+							{/if}
 						</td>
 					</tr>
 				{/each}
