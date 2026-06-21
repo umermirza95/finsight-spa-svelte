@@ -353,7 +353,7 @@
 								
 								<!-- List -->
 								<div class="max-h-60 overflow-y-auto p-2 space-y-1">
-									{#each categories as cat}
+									{#each categories as cat (cat.id)}
 										<button 
 											type="button"
 											onclick={() => toggleCategorySelect(cat.id)}

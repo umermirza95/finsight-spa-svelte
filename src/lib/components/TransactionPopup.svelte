@@ -28,6 +28,28 @@
 	let mode = $state(1); // 1 = cash
 	let comment = $state('');
 
+	const parseType = (val: any): number => {
+		if (typeof val === 'number') return val;
+		if (typeof val === 'string') {
+			const lower = val.toLowerCase();
+			if (lower === 'income') return 0;
+			if (lower === 'expense') return 1;
+		}
+		return 1; // 1 = expense
+	};
+
+	const parseMode = (val: any): number => {
+		if (typeof val === 'number') return val;
+		if (typeof val === 'string') {
+			const lower = val.toLowerCase();
+			if (lower === 'card') return 0;
+			if (lower === 'cash') return 1;
+			if (lower === 'transfer') return 2;
+			if (lower === 'online') return 3;
+		}
+		return 1; // 1 = cash
+	};
+
 	// Reset form when opened or transaction changes
 	$effect(() => {
 		if (isOpen) {
@@ -37,8 +59,8 @@
 				categoryId = transaction.categoryId || '';
 				subCategoryId = transaction.subCategoryId || '';
 				date = transaction.date ? transaction.date.split('T')[0] : new Date().toISOString().split('T')[0];
-				type = transaction.type ?? 1;
-				mode = transaction.mode ?? 1;
+				type = parseType(transaction.type);
+				mode = parseMode(transaction.mode);
 				comment = transaction.comment || '';
 			} else {
 				amount = '';
