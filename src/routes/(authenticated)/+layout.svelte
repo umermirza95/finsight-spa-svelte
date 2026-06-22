@@ -57,7 +57,7 @@
 			{#each navItems as item (item.path)}
 				{@const isActive = $page.url.pathname === item.path || ($page.url.pathname === '/' && item.name === 'Dashboard')}
 				<a 
-					href={resolve(item.path)}
+					href={resolve(item.path as any)}
 					class="flex items-center gap-4 px-5 py-4 rounded-[1.5rem] font-medium transition-all duration-200 {isActive ? 'bg-primary text-primary-foreground shadow-md' : 'text-primary/70 hover:bg-black/5 hover:text-primary'}"
 				>
 					<svelte:component this={item.icon} size={20} />
@@ -135,7 +135,7 @@
 			{#each navItems as item (item.path)}
 				{@const isActive = $page.url.pathname === item.path || ($page.url.pathname === '/' && item.name === 'Dashboard')}
 				<a 
-					href={resolve(item.path)}
+					href={resolve(item.path as any)}
 					class="flex flex-col items-center justify-center w-[4.5rem] h-14 rounded-2xl transition-all duration-200 {isActive ? 'bg-brand-blue text-primary' : 'text-muted-foreground hover:text-primary'}"
 				>
 					<svelte:component this={item.icon} size={20} class="mb-1 {isActive ? 'opacity-100' : 'opacity-70'}" />
