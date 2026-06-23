@@ -4,6 +4,9 @@
 	import * as Collapsible from "$lib/components/ui/collapsible";
 
 	let openTrades = $state<any[]>([]);
+	let totalCapital = $state(0);
+	let capitalUsed = $state(0);
+	let availableTranches = $state(0);
 	let closedTrades = $state<any[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state("");
@@ -30,7 +33,17 @@
 				headers: { Authorization: `Bearer ${token}` },
 			});
 			if (!openRes.ok) throw new Error("Failed to fetch open trades");
-			openTrades = await openRes.json();
+			const openData = await openRes.json();
+			
+			// Support both old array response and new object response
+			if (Array.isArray(openData)) {
+				openTrades = openData;
+			} else {
+				openTrades = openData.trades || [];
+				totalCapital = openData.totalCapital || 0;
+				capitalUsed = openData.capitalUsed || 0;
+				availableTranches = openData.availableTranches || 0;
+			}
 
 			// Fetch Closed Trades
 			const closedRes = await fetch("/api/Trading/closed", {
