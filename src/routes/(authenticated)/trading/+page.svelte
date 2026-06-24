@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { Activity, ChevronDown, ChevronUp } from "lucide-svelte";
 	import * as Collapsible from "$lib/components/ui/collapsible";
+	import TickerIcon from "$lib/components/TickerIcon.svelte";
 
 	let openTrades = $state<any[]>([]);
 	let totalCapital = $state(0);
@@ -14,11 +15,49 @@
 	let isClosedTradesOpen = $state(false);
 	let isOpenTradesOpen = $state(true);
 
+	let expandedTickers = $state<Record<string, boolean>>({});
+
+	function toggleTicker(ticker: string) {
+		expandedTickers[ticker] = !expandedTickers[ticker];
+	}
+
 	let totalClosedProfit = $derived.by(() => {
 		return closedTrades.reduce(
 			(sum, trade) => sum + (trade.netProfit || 0),
 			0,
 		);
+	});
+
+	let groupedOpenTrades = $derived.by(() => {
+		const groups: Record<string, any[]> = {};
+		for (const trade of openTrades) {
+			const ticker = trade.ticker || 'Unknown';
+			if (!groups[ticker]) {
+				groups[ticker] = [];
+			}
+			groups[ticker].push(trade);
+		}
+		
+		return Object.entries(groups).map(([ticker, trades]) => {
+			const totalQuantity = trades.reduce((sum, t) => sum + (t.quantity || 0), 0);
+			const totalCost = trades.reduce((sum, t) => sum + ((t.quantity || 0) * (t.tradePrice || 0)), 0);
+			const avgEntry = totalQuantity > 0 ? totalCost / totalQuantity : 0;
+			
+			// We assume the currentPrice is the same for all tranches of the same ticker,
+			// or we can take the currentPrice from the first trade that has it.
+			const currentPrice = trades[0]?.currentPrice || 0;
+			const totalCurrentValue = currentPrice * totalQuantity;
+			const pl = totalCurrentValue - totalCost;
+
+			return {
+				ticker,
+				trades,
+				totalQuantity,
+				avgEntry,
+				currentPrice,
+				pl
+			};
+		}).sort((a, b) => a.ticker.localeCompare(b.ticker));
 	});
 
 	async function loadData() {
@@ -145,6 +184,7 @@
 							class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
 						>
 							<tr>
+								<th class="w-10"></th>
 								<th
 									class="px-6 py-4 font-semibold tracking-wider"
 									>Ticker</th
@@ -168,37 +208,71 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border/50">
-							{#each openTrades as trade (trade.id)}
-								<tr
-									class="hover:bg-secondary/10 transition-colors group"
+							{#each groupedOpenTrades as group (group.ticker)}
+								<tr 
+									class="bg-secondary/5 border-b border-border/50 {group.trades.length > 1 ? 'cursor-pointer hover:bg-secondary/10 transition-colors' : ''}"
+									onclick={() => group.trades.length > 1 && toggleTicker(group.ticker)}
 								>
+									<td class="pl-4 pr-2">
+										{#if group.trades.length > 1}
+											<div class="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground transition-colors flex items-center justify-center w-8 h-8">
+												{#if expandedTickers[group.ticker]}
+													<ChevronUp size={16} />
+												{:else}
+													<ChevronDown size={16} />
+												{/if}
+											</div>
+										{/if}
+									</td>
 									<td class="px-6 py-4">
 										<div class="flex items-center gap-3">
-											<div
-												class="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/50 text-foreground"
-											>
-												<Activity size={16} />
-											</div>
-											<span
-												class="font-bold text-foreground"
-												>{trade.ticker}</span
-											>
+											<TickerIcon ticker={group.ticker} />
+											<span class="font-bold text-foreground">{group.ticker}</span>
+											{#if group.trades.length > 1}
+												<span class="px-2 py-0.5 rounded-full bg-secondary/50 text-xs font-semibold text-muted-foreground">{group.trades.length}</span>
+											{/if}
 										</div>
 									</td>
-									<td
-										class="px-6 py-4 font-medium text-foreground"
-										>{trade.quantity}</td
-									>
-									<td class="px-6 py-4 text-foreground"
-										>{formatCurrency(trade.tradePrice)}</td
-									>
-									<td class="px-6 py-4 text-muted-foreground">
-										N/A
+									<td class="px-6 py-4 font-medium text-foreground">{group.totalQuantity}</td>
+									<td class="px-6 py-4 text-foreground">{formatCurrency(group.avgEntry)}</td>
+									<td class="px-6 py-4 text-foreground">
+										{group.currentPrice > 0 ? formatCurrency(group.currentPrice) : 'N/A'}
 									</td>
-									<td class="px-6 py-4 text-muted-foreground">
-										N/A
+									<td class="px-6 py-4">
+										{#if group.pl !== 0}
+											<div class="font-bold {group.pl >= 0 ? 'text-green-600' : 'text-red-600'}">
+												{group.pl >= 0 ? '+' : ''}{formatCurrency(group.pl)}
+											</div>
+										{:else}
+											<span class="text-muted-foreground">N/A</span>
+										{/if}
 									</td>
 								</tr>
+								
+								{#if group.trades.length > 1 && expandedTickers[group.ticker]}
+									{#each group.trades as trade (trade.id)}
+										<tr class="hover:bg-secondary/10 transition-colors group bg-card">
+											<td></td>
+											<td class="px-6 py-3 pl-16 text-muted-foreground">
+												<div class="flex items-center gap-2">
+													<div class="w-1.5 h-1.5 rounded-full bg-border"></div>
+													<span>Tranche</span>
+												</div>
+											</td>
+											<td class="px-6 py-3 font-medium text-foreground">{trade.quantity}</td>
+											<td class="px-6 py-3 text-foreground">{formatCurrency(trade.tradePrice)}</td>
+											<td class="px-6 py-3 text-muted-foreground"></td>
+											<td class="px-6 py-3 font-medium {trade.currentPrice > 0 ? ((trade.currentPrice - trade.tradePrice) * trade.quantity >= 0 ? 'text-green-600' : 'text-red-600') : 'text-muted-foreground'}">
+												{#if trade.currentPrice > 0}
+													{@const tranchePl = (trade.currentPrice - trade.tradePrice) * trade.quantity}
+													{tranchePl >= 0 ? '+' : ''}{formatCurrency(tranchePl)}
+												{:else}
+													N/A
+												{/if}
+											</td>
+										</tr>
+									{/each}
+								{/if}
 							{/each}
 						</tbody>
 					</table>
@@ -301,11 +375,7 @@
 								>
 									<td class="px-6 py-4">
 										<div class="flex items-center gap-3">
-											<div
-												class="w-8 h-8 rounded-lg flex items-center justify-center bg-secondary/50 text-foreground"
-											>
-												<Activity size={16} />
-											</div>
+											<TickerIcon ticker={trade.ticker} fallbackClass="bg-secondary/50 text-foreground" />
 											<span
 												class="font-bold text-foreground"
 												>{trade.ticker}</span
