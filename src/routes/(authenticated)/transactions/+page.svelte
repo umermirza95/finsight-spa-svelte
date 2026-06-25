@@ -4,6 +4,7 @@
 	import { onMount } from 'svelte';
 	import TransactionList from '$lib/components/TransactionList.svelte';
 	import TransactionPopup from '$lib/components/TransactionPopup.svelte';
+	import TransactionsPieChart from '$lib/components/TransactionsPieChart.svelte';
 	import { 
 		Plus, Search, Filter, ChevronDown, ListOrdered, X, Check, Trash2
 	} from 'lucide-svelte';
@@ -48,6 +49,8 @@
 	let isDeleteConfirmOpen = $state(false);
 	let transactionToDelete = $state<any>(null);
 	let isDeleting = $state(false);
+	
+	let activeTab = $state<'list' | 'graph'>('list');
 
 	function openAddPopup() {
 		selectedTransaction = null;
@@ -230,7 +233,7 @@
 
 </script>
 
-<div class="space-y-8 pb-12">
+<div class="space-y-6 pb-12">
 	<!-- Floating Action Button -->
 	<button 
 		class="fixed bottom-24 lg:bottom-10 right-6 lg:right-10 z-40 w-14 h-14 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-105 hover:shadow-xl transition-all duration-200"
@@ -241,47 +244,72 @@
 		<Plus size={28} strokeWidth={2.5} />
 	</button>
 
-	<!-- Render the child component with the parsed filter -->
-	<div class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col">
-		
-		<!-- Toolbar: Search and Filters -->
-		<div class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50">
-			<button 
-				onclick={openFilterModal}
-				class="flex items-center gap-2 px-4 py-2.5 bg-background border border-border/60 rounded-xl text-sm font-medium hover:bg-secondary/50 transition-colors"
-			>
-				<Filter size={16} />
-				Filter
-			</button>
+	<!-- Mobile Tabs -->
+	<div class="lg:hidden bg-card border border-border/50 rounded-xl p-1 flex shadow-sm">
+		<button 
+			onclick={() => activeTab = 'list'} 
+			class="flex-1 py-2 text-sm font-semibold rounded-lg transition-colors {activeTab === 'list' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}"
+		>
+			List View
+		</button>
+		<button 
+			onclick={() => activeTab = 'graph'} 
+			class="flex-1 py-2 text-sm font-semibold rounded-lg transition-colors {activeTab === 'graph' ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-secondary/50'}"
+		>
+			Graph View
+		</button>
+	</div>
+
+	<!-- Main Container -->
+	<div class="flex flex-col lg:flex-row gap-6 items-start relative">
+		<!-- Left Side: List -->
+		<div class="w-full lg:flex-1 bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex-col {activeTab === 'list' ? 'flex' : 'hidden lg:flex'}">
 			
-			<div class="relative sort-dropdown-container">
+			<!-- Toolbar: Search and Filters -->
+			<div class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50">
 				<button 
-					onclick={() => isSortOpen = !isSortOpen}
+					onclick={openFilterModal}
 					class="flex items-center gap-2 px-4 py-2.5 bg-background border border-border/60 rounded-xl text-sm font-medium hover:bg-secondary/50 transition-colors"
 				>
-					<ListOrdered size={16} />
-					Sort
-					<ChevronDown size={14} class="ml-1 opacity-50" />
+					<Filter size={16} />
+					Filter
 				</button>
-				{#if isSortOpen}
-					<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
-						<button onclick={() => { sortOption = 'date-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Newest)</button>
-						<button onclick={() => { sortOption = 'date-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Oldest)</button>
-						<button onclick={() => { sortOption = 'amount-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (High to Low)</button>
-						<button onclick={() => { sortOption = 'amount-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (Low to High)</button>
-					</div>
-				{/if}
+				
+				<div class="relative sort-dropdown-container">
+					<button 
+						onclick={() => isSortOpen = !isSortOpen}
+						class="flex items-center gap-2 px-4 py-2.5 bg-background border border-border/60 rounded-xl text-sm font-medium hover:bg-secondary/50 transition-colors"
+					>
+						<ListOrdered size={16} />
+						Sort
+						<ChevronDown size={14} class="ml-1 opacity-50" />
+					</button>
+					{#if isSortOpen}
+						<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
+							<button onclick={() => { sortOption = 'date-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Newest)</button>
+							<button onclick={() => { sortOption = 'date-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Oldest)</button>
+							<button onclick={() => { sortOption = 'amount-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (High to Low)</button>
+							<button onclick={() => { sortOption = 'amount-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (Low to High)</button>
+						</div>
+					{/if}
+				</div>
 			</div>
+
+			<TransactionList 
+				transactions={sortedTransactions} 
+				{categories} 
+				{isLoading} 
+				{errorMessage} 
+				onedit={(tx) => { selectedTransaction = tx; isPopupOpen = true; }}
+				ondelete={(tx) => { transactionToDelete = tx; isDeleteConfirmOpen = true; }}
+			/>
 		</div>
 
-		<TransactionList 
-			transactions={sortedTransactions} 
-			{categories} 
-			{isLoading} 
-			{errorMessage} 
-			onedit={(tx) => { selectedTransaction = tx; isPopupOpen = true; }}
-			ondelete={(tx) => { transactionToDelete = tx; isDeleteConfirmOpen = true; }}
-		/>
+		<!-- Right Side: Graph -->
+		<div class="w-full lg:w-[400px] bg-card border border-border/50 rounded-3xl shadow-sm p-6 flex-col {activeTab === 'graph' ? 'flex' : 'hidden lg:flex'} shrink-0 lg:sticky lg:top-24">
+			<h3 class="text-lg font-bold text-foreground mb-6 text-center">Transactions by Category</h3>
+			<TransactionsPieChart transactions={sortedTransactions} {categories} />
+		</div>
 	</div>
 </div>
 

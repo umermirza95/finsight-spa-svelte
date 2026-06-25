@@ -217,9 +217,8 @@
 								<select 
 									bind:value={subCategoryId}
 									class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
-									required
 								>
-									<option value="" disabled>Select a sub category</option>
+									<option value="">None (Optional)</option>
 									{#each currentSubCategories as subCat}
 										<option value={subCat.id}>{subCat.name}</option>
 									{/each}
