@@ -1,6 +1,7 @@
 <script lang="ts">
 	import IncomeExpenseChart from "$lib/components/IncomeExpenseChart.svelte";
 	import TradingWidget from "$lib/components/TradingWidget.svelte";
+	import CapitalWidget from "$lib/components/CapitalWidget.svelte";
 </script>
 
 <div class="space-y-6">
@@ -10,4 +11,7 @@
 		<!-- Render the Trading Widget Component -->
 		<TradingWidget />
 	</div>
+	
+	<!-- Render the Capital Metrics Widget Component on a new line -->
+	<CapitalWidget />
 </div>

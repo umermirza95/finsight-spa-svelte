@@ -60,6 +60,36 @@
 		}).sort((a, b) => a.ticker.localeCompare(b.ticker));
 	});
 
+	let expandedDates = $state<Record<string, boolean>>({});
+
+	function toggleDate(dateStr: string) {
+		expandedDates[dateStr] = !expandedDates[dateStr];
+	}
+
+	let groupedClosedTrades = $derived.by(() => {
+		const groups: Record<string, any[]> = {};
+		for (const trade of closedTrades) {
+			const dateStr = trade.closeDate ? trade.closeDate.split('T')[0] : 'Unknown';
+			if (!groups[dateStr]) {
+				groups[dateStr] = [];
+			}
+			groups[dateStr].push(trade);
+		}
+		
+		return Object.entries(groups).map(([dateStr, trades]) => {
+			const totalProfit = trades.reduce((sum, t) => sum + (t.netProfit || 0), 0);
+			return {
+				dateStr,
+				trades,
+				totalProfit
+			};
+		}).sort((a, b) => {
+			if (a.dateStr === 'Unknown') return 1;
+			if (b.dateStr === 'Unknown') return -1;
+			return new Date(b.dateStr).getTime() - new Date(a.dateStr).getTime();
+		});
+	});
+
 	async function loadData() {
 		isLoading = true;
 		errorMessage = "";
@@ -338,9 +368,10 @@
 							class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
 						>
 							<tr>
+								<th class="w-10"></th>
 								<th
 									class="px-6 py-4 font-semibold tracking-wider"
-									>Ticker</th
+									>Date / Ticker</th
 								>
 								<th
 									class="px-6 py-4 font-semibold tracking-wider"
@@ -369,50 +400,57 @@
 							</tr>
 						</thead>
 						<tbody class="divide-y divide-border/50">
-							{#each closedTrades as trade (trade.closedTradeId)}
-								<tr
-									class="hover:bg-secondary/10 transition-colors group"
+							{#each groupedClosedTrades as group (group.dateStr)}
+								<tr 
+									class="bg-secondary/5 border-b border-border/50 cursor-pointer hover:bg-secondary/10 transition-colors"
+									onclick={() => toggleDate(group.dateStr)}
 								>
-									<td class="px-6 py-4">
-										<div class="flex items-center gap-3">
-											<TickerIcon ticker={trade.ticker} fallbackClass="bg-secondary/50 text-foreground" />
-											<span
-												class="font-bold text-foreground"
-												>{trade.ticker}</span
-											>
+									<td class="pl-4 pr-2">
+										<div class="p-1.5 rounded-md hover:bg-secondary/50 text-muted-foreground transition-colors flex items-center justify-center w-8 h-8">
+											{#if expandedDates[group.dateStr]}
+												<ChevronUp size={16} />
+											{:else}
+												<ChevronDown size={16} />
+											{/if}
 										</div>
 									</td>
-									<td class="px-6 py-4 text-muted-foreground"
-										>{formatDate(trade.openDate)}</td
-									>
-									<td class="px-6 py-4 text-muted-foreground"
-										>{formatDate(trade.closeDate)}</td
-									>
-									<td
-										class="px-6 py-4 font-medium text-foreground"
-										>{trade.quantity}</td
-									>
-									<td class="px-6 py-4 text-foreground"
-										>{formatCurrency(trade.buyPrice)}</td
-									>
-									<td class="px-6 py-4 text-foreground"
-										>{formatCurrency(trade.sellPrice)}</td
-									>
 									<td class="px-6 py-4">
-										<span
-											class="font-bold {trade.netProfit >=
-											0
-												? 'text-green-600'
-												: 'text-red-600'}"
-										>
-											{trade.netProfit >= 0
-												? "+"
-												: ""}{formatCurrency(
-												trade.netProfit,
-											)}
+										<div class="flex items-center gap-3">
+											<span class="font-bold text-foreground">{formatDate(group.dateStr)}</span>
+											<span class="px-2 py-0.5 rounded-full bg-secondary/50 text-xs font-semibold text-muted-foreground">{group.trades.length}</span>
+										</div>
+									</td>
+									<td colspan="5"></td>
+									<td class="px-6 py-4">
+										<span class="font-bold {group.totalProfit >= 0 ? 'text-green-600' : 'text-red-600'}">
+											{group.totalProfit >= 0 ? "+" : ""}{formatCurrency(group.totalProfit)}
 										</span>
 									</td>
 								</tr>
+								
+								{#if expandedDates[group.dateStr]}
+									{#each group.trades as trade (trade.closedTradeId)}
+										<tr class="hover:bg-secondary/10 transition-colors group bg-card border-b border-border/10 last:border-0">
+											<td></td>
+											<td class="px-6 py-3">
+												<div class="flex items-center gap-3">
+													<TickerIcon ticker={trade.ticker} fallbackClass="bg-secondary/50 text-foreground" />
+													<span class="font-bold text-foreground">{trade.ticker}</span>
+												</div>
+											</td>
+											<td class="px-6 py-3 text-muted-foreground">{formatDate(trade.openDate)}</td>
+											<td class="px-6 py-3 text-muted-foreground">{formatDate(trade.closeDate)}</td>
+											<td class="px-6 py-3 font-medium text-foreground">{trade.quantity}</td>
+											<td class="px-6 py-3 text-foreground">{formatCurrency(trade.buyPrice)}</td>
+											<td class="px-6 py-3 text-foreground">{formatCurrency(trade.sellPrice)}</td>
+											<td class="px-6 py-3">
+												<span class="font-bold {trade.netProfit >= 0 ? 'text-green-600' : 'text-red-600'}">
+													{trade.netProfit >= 0 ? "+" : ""}{formatCurrency(trade.netProfit)}
+												</span>
+											</td>
+										</tr>
+									{/each}
+								{/if}
 							{/each}
 						</tbody>
 					</table>

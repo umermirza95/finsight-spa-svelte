@@ -9,6 +9,13 @@
 		Plus, Search, Filter, ChevronDown, ListOrdered, X, Check, Trash2
 	} from 'lucide-svelte';
 
+	function getLocalDateString(date: Date) {
+		const year = date.getFullYear();
+		const month = String(date.getMonth() + 1).padStart(2, '0');
+		const day = String(date.getDate()).padStart(2, '0');
+		return `${year}-${month}-${day}`;
+	}
+
 	// Parse URL params reactively
 	let filter = $derived.by(() => {
 		const searchParams = $page.url.searchParams;
@@ -22,8 +29,8 @@
 			const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 			const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0); // Last day of month
 			
-			from = from || startOfMonth.toISOString().split('T')[0];
-			to = to || endOfMonth.toISOString().split('T')[0];
+			from = from || getLocalDateString(startOfMonth);
+			to = to || getLocalDateString(endOfMonth);
 		}
 
 		return {
@@ -51,6 +58,10 @@
 	let isDeleting = $state(false);
 	
 	let activeTab = $state<'list' | 'graph'>('list');
+
+	let windowHeight = $state(0);
+	let graphHeight = $state(0);
+	let shouldBeSticky = $derived(graphHeight > 0 && windowHeight > 0 && graphHeight < windowHeight - 120); // 120px safety margin for top-24 + padding
 
 	function openAddPopup() {
 		selectedTransaction = null;
@@ -109,8 +120,8 @@
 		const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 		const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
 		
-		draftFrom = startOfMonth.toISOString().split('T')[0];
-		draftTo = endOfMonth.toISOString().split('T')[0];
+		draftFrom = getLocalDateString(startOfMonth);
+		draftTo = getLocalDateString(endOfMonth);
 		draftType = 'All';
 		draftCategoryIds = [];
 		draftSearchQuery = '';
@@ -233,6 +244,8 @@
 
 </script>
 
+<svelte:window bind:innerHeight={windowHeight} />
+
 <div class="space-y-6 pb-12">
 	<!-- Floating Action Button -->
 	<button 
@@ -306,7 +319,10 @@
 		</div>
 
 		<!-- Right Side: Graph -->
-		<div class="w-full lg:w-[400px] bg-card border border-border/50 rounded-3xl shadow-sm p-6 flex-col {activeTab === 'graph' ? 'flex' : 'hidden lg:flex'} shrink-0 lg:sticky lg:top-24">
+		<div 
+			bind:clientHeight={graphHeight}
+			class="w-full lg:w-[400px] bg-card border border-border/50 rounded-3xl shadow-sm p-6 flex-col {activeTab === 'graph' ? 'flex' : 'hidden lg:flex'} shrink-0 {shouldBeSticky ? 'lg:sticky lg:top-24' : ''}"
+		>
 			<h3 class="text-lg font-bold text-foreground mb-6 text-center">Transactions by Category</h3>
 			<TransactionsPieChart transactions={sortedTransactions} {categories} />
 		</div>

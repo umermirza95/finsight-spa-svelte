@@ -1,17 +1,12 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
-	import Speedometer from '$lib/components/ui/Speedometer.svelte';
 
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
 
 	let isLoading = $state(true);
 	let errorMessage = $state('');
-
-	let totalCapital = $state(0);
-	let capitalUsed = $state(0);
-	let availableTranches = $state(0);
 	
 	let monthlyProfits = $state<number[]>(Array(12).fill(0));
 	const currentYear = new Date().getFullYear();
@@ -22,19 +17,6 @@
 		try {
 			const token = localStorage.getItem('authToken');
 			if (!token) throw new Error('Not authenticated');
-
-			// Fetch Open Trades for Capital Metrics
-			const openRes = await fetch('/api/Trading/open', {
-				headers: { Authorization: `Bearer ${token}` }
-			});
-			if (!openRes.ok) throw new Error('Failed to fetch capital metrics');
-			const openData = await openRes.json();
-			
-			if (!Array.isArray(openData)) {
-				totalCapital = openData.totalCapital || 0;
-				capitalUsed = openData.capitalUsed || 0;
-				availableTranches = openData.availableTranches || 0;
-			}
 
 			// Fetch Closed Trades for Profit Graph
 			const fromDate = `${currentYear}-01-01`;
@@ -164,11 +146,6 @@
 			}
 		};
 	});
-
-	function formatCurrency(amount: number) {
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
-	}
-
 </script>
 
 <div class="bg-card border border-border/50 rounded-3xl p-6 md:p-8 flex flex-col shadow-sm">
@@ -177,45 +154,20 @@
 		<span class="px-3 py-1 bg-secondary/30 rounded-full text-sm font-medium text-foreground">{currentYear}</span>
 	</div>
 
-	<div class="flex flex-col xl:flex-row gap-8">
-		<!-- Chart area -->
-		<div class="w-full xl:w-2/3 relative h-[200px] md:h-[240px]">
-			{#if isLoading && !chartInstance}
-				<div class="absolute inset-0 flex items-center justify-center">
-					<div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
-				</div>
-			{/if}
-			
-			{#if errorMessage}
-				<div class="absolute inset-0 flex items-center justify-center text-destructive text-sm bg-card/80 backdrop-blur-sm z-10">
-					{errorMessage}
-				</div>
-			{/if}
+	<!-- Chart area -->
+	<div class="w-full relative h-[200px] md:h-[240px]">
+		{#if isLoading && !chartInstance}
+			<div class="absolute inset-0 flex items-center justify-center">
+				<div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+			</div>
+		{/if}
+		
+		{#if errorMessage}
+			<div class="absolute inset-0 flex items-center justify-center text-destructive text-sm bg-card/80 backdrop-blur-sm z-10">
+				{errorMessage}
+			</div>
+		{/if}
 
-			<canvas bind:this={canvas} class="w-full h-full {isLoading ? 'opacity-50' : 'opacity-100'} transition-opacity"></canvas>
-		</div>
-
-		<!-- Capital Metrics area -->
-		<div class="w-full xl:w-1/3 flex flex-col justify-center items-center p-6 bg-secondary/10 rounded-2xl border border-border/40">
-			{#if totalCapital > 0}
-				<h3 class="text-sm font-semibold text-muted-foreground mb-6 uppercase tracking-wider">Capital Deployment</h3>
-				<Speedometer value={capitalUsed} max={totalCapital} />
-				<div class="mt-6 flex flex-col items-center gap-1">
-					<span class="text-2xl font-bold text-foreground">{formatCurrency(capitalUsed)}</span>
-					<span class="text-sm text-muted-foreground">of {formatCurrency(totalCapital)}</span>
-				</div>
-				
-				<div class="w-full h-px bg-border/50 my-6"></div>
-
-				<div class="flex flex-col items-center">
-					<span class="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Available Tranches</span>
-					<span class="text-3xl font-black text-foreground">{availableTranches}</span>
-				</div>
-			{:else}
-				<div class="text-center text-muted-foreground text-sm">
-					Trading capital not configured.
-				</div>
-			{/if}
-		</div>
+		<canvas bind:this={canvas} class="w-full h-full {isLoading ? 'opacity-50' : 'opacity-100'} transition-opacity"></canvas>
 	</div>
 </div>
