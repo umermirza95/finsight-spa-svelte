@@ -130,6 +130,8 @@
 	}
 </script>
 
+<svelte:window onkeydown={(e) => { if (isOpen && e.key === 'Escape') onClose(); }} />
+
 {#if isOpen}
 	<div class="fixed inset-0 z-50 flex items-center justify-center bg-background/80 backdrop-blur-sm p-4">
 		<!-- svelte-ignore a11y_click_events_have_key_events -->
@@ -157,7 +159,6 @@
 
 			<form 
 				onsubmit={(e) => { e.preventDefault(); handleSubmit(); }} 
-				onkeydown={(e) => { if (e.key === 'Escape') onClose(); }}
 				class="flex flex-col flex-1"
 			>
 				<!-- Body -->
@@ -190,6 +191,8 @@
 								class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
 							>
 								<option value="PKR">PKR</option>
+								<option value="USD">USD</option>
+								<option value="EUR">EUR</option>
 							</select>
 						</div>
 					</div>
