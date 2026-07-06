@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { Activity, ChevronDown, ChevronUp } from "lucide-svelte";
+	import { Activity, ChevronDown, ChevronUp, Calendar, Search, Filter, X } from "lucide-svelte";
 	import * as Collapsible from "$lib/components/ui/collapsible";
 	import TickerIcon from "$lib/components/TickerIcon.svelte";
 
@@ -16,6 +16,11 @@
 	let isOpenTradesOpen = $state(true);
 
 	let expandedTickers = $state<Record<string, boolean>>({});
+
+	let filterStartDate = $state("");
+	let filterEndDate = $state("");
+	let filterTicker = $state("");
+	let isFilterPopupOpen = $state(false);
 
 	function toggleTicker(ticker: string) {
 		expandedTickers[ticker] = !expandedTickers[ticker];
@@ -90,6 +95,39 @@
 		});
 	});
 
+	async function loadOpenTrades(token: string) {
+		const openRes = await fetch("/api/Trading/open", {
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		if (!openRes.ok) throw new Error("Failed to fetch open trades");
+		const openData = await openRes.json();
+		
+		if (Array.isArray(openData)) {
+			openTrades = openData;
+		} else {
+			openTrades = openData.trades || [];
+			totalCapital = openData.totalCapital || 0;
+			capitalUsed = openData.capitalUsed || 0;
+			availableTranches = openData.availableTranches || 0;
+		}
+	}
+
+	async function loadClosedTrades(token: string) {
+		const params = new URLSearchParams();
+		if (filterStartDate) params.append("startDate", filterStartDate);
+		if (filterEndDate) params.append("endDate", filterEndDate);
+		if (filterTicker) params.append("ticker", filterTicker);
+
+		const closedRes = await fetch(`/api/Trading/closed?${params.toString()}`, {
+			headers: { Authorization: `Bearer ${token}` },
+		});
+		if (!closedRes.ok) throw new Error("Failed to fetch closed trades");
+		const closedData = await closedRes.json();
+		closedTrades = Array.isArray(closedData)
+			? closedData
+			: closedData.data || [];
+	}
+
 	async function loadData() {
 		isLoading = true;
 		errorMessage = "";
@@ -97,38 +135,38 @@
 			const token = localStorage.getItem("authToken");
 			if (!token) throw new Error("Not authenticated");
 
-			// Fetch Open Trades
-			const openRes = await fetch("/api/Trading/open", {
-				headers: { Authorization: `Bearer ${token}` },
-			});
-			if (!openRes.ok) throw new Error("Failed to fetch open trades");
-			const openData = await openRes.json();
-			
-			// Support both old array response and new object response
-			if (Array.isArray(openData)) {
-				openTrades = openData;
-			} else {
-				openTrades = openData.trades || [];
-				totalCapital = openData.totalCapital || 0;
-				capitalUsed = openData.capitalUsed || 0;
-				availableTranches = openData.availableTranches || 0;
-			}
-
-			// Fetch Closed Trades
-			const closedRes = await fetch("/api/Trading/closed", {
-				headers: { Authorization: `Bearer ${token}` },
-			});
-			if (!closedRes.ok) throw new Error("Failed to fetch closed trades");
-			const closedData = await closedRes.json();
-			// Handle whether API returns array directly or wrapped in data object
-			closedTrades = Array.isArray(closedData)
-				? closedData
-				: closedData.data || [];
+			await Promise.all([
+				loadOpenTrades(token),
+				loadClosedTrades(token)
+			]);
 		} catch (error: any) {
 			errorMessage = error.message;
 		} finally {
 			isLoading = false;
 		}
+	}
+
+	async function applyFilters() {
+		isLoading = true;
+		errorMessage = "";
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) throw new Error("Not authenticated");
+
+			await loadClosedTrades(token);
+		} catch (error: any) {
+			errorMessage = error.message;
+		} finally {
+			isLoading = false;
+		}
+	}
+
+	async function clearFilters() {
+		filterStartDate = "";
+		filterEndDate = "";
+		filterTicker = "";
+		isFilterPopupOpen = false;
+		await applyFilters();
 	}
 
 	onMount(() => {
@@ -345,6 +383,16 @@
 							)}
 						</span>
 					</div>
+					<button
+						onclick={() => isFilterPopupOpen = true}
+						class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground flex items-center justify-center relative"
+						title="Filter Trades"
+					>
+						<Filter size={20} />
+						{#if filterStartDate || filterEndDate || filterTicker}
+							<div class="absolute top-1 right-1 w-2 h-2 bg-primary rounded-full border border-card"></div>
+						{/if}
+					</button>
 					<Collapsible.Trigger
 						class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
 					>
@@ -440,7 +488,7 @@
 											</td>
 											<td class="px-6 py-3 text-muted-foreground">{formatDate(trade.openDate)}</td>
 											<td class="px-6 py-3 text-muted-foreground">{formatDate(trade.closeDate)}</td>
-											<td class="px-6 py-3 font-medium text-foreground">{trade.quantity}</td>
+											<td class="px-6 py-3 font-medium text-foreground">{trade.closedTradeQuantity}/{trade.openTradeQuantity}</td>
 											<td class="px-6 py-3 text-foreground">{formatCurrency(trade.buyPrice)}</td>
 											<td class="px-6 py-3 text-foreground">{formatCurrency(trade.sellPrice)}</td>
 											<td class="px-6 py-3">
@@ -459,3 +507,40 @@
 		</Collapsible.Root>
 	{/if}
 </div>
+
+{#if isFilterPopupOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick={(e) => { if (e.target === e.currentTarget) isFilterPopupOpen = false; }}>
+		<div class="bg-card border border-border rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col">
+			<div class="p-6 border-b border-border/50 flex items-center justify-between">
+				<h3 class="text-lg font-bold text-foreground">Filter Trades</h3>
+				<button onclick={() => isFilterPopupOpen = false} class="text-muted-foreground hover:text-foreground">
+					<X size={20} />
+				</button>
+			</div>
+			<div class="p-6 space-y-4">
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">Start Date</label>
+					<input type="date" bind:value={filterStartDate} class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">End Date</label>
+					<input type="date" bind:value={filterEndDate} class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">Ticker</label>
+					<input type="text" placeholder="e.g. AAPL" bind:value={filterTicker} class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+			</div>
+			<div class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3">
+				<button onclick={clearFilters} class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors">
+					Clear Filters
+				</button>
+				<button onclick={() => { isFilterPopupOpen = false; applyFilters(); }} class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors">
+					Apply Filters
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
