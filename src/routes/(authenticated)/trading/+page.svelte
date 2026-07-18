@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { Activity, ChevronDown, ChevronUp, Calendar, Search, Filter, X } from "lucide-svelte";
+	import { Activity, ChevronDown, ChevronUp, Calendar, Search, Filter, X, MoreHorizontal, RefreshCw } from "lucide-svelte";
 	import * as Collapsible from "$lib/components/ui/collapsible";
 	import TickerIcon from "$lib/components/TickerIcon.svelte";
 
@@ -14,6 +14,11 @@
 
 	let isClosedTradesOpen = $state(false);
 	let isOpenTradesOpen = $state(true);
+
+	let isActionsOpen = $state(false);
+	let isSyncing = $state(false);
+	let toastMessage = $state("");
+	let toastType = $state<"success" | "error">("success");
 
 	let expandedTickers = $state<Record<string, boolean>>({});
 
@@ -169,6 +174,43 @@
 		await applyFilters();
 	}
 
+	function showToast(msg: string, type: "success" | "error" = "success") {
+		toastMessage = msg;
+		toastType = type;
+		setTimeout(() => {
+			toastMessage = "";
+		}, 3000);
+	}
+
+	async function handleSyncTrades() {
+		isActionsOpen = false;
+		isSyncing = true;
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) throw new Error("Not authenticated");
+
+			const res = await fetch("/api/Trading/sync", {
+				method: "POST",
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+				throw new Error(errorData.message || "Failed to sync trades");
+			}
+			
+			const data = await res.json();
+			showToast(data.message || "Trades synchronized successfully.", "success");
+			
+			// Reload data after sync
+			await loadData();
+		} catch (error: any) {
+			showToast(error.message, "error");
+		} finally {
+			isSyncing = false;
+		}
+	}
+
 	onMount(() => {
 		loadData();
 	});
@@ -194,7 +236,54 @@
 	}
 </script>
 
-<div class="space-y-8 pb-12">
+<div class="space-y-8 pb-12 relative">
+	<!-- Actions and Toast -->
+	<div class="flex justify-end mb-4">
+		<div class="relative">
+			<button 
+				onclick={() => isActionsOpen = !isActionsOpen}
+				class="flex items-center gap-2 px-4 py-2 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors font-medium shadow-sm"
+			>
+				<span>Actions</span>
+				<ChevronDown size={16} class="transition-transform {isActionsOpen ? 'rotate-180' : ''}" />
+			</button>
+			
+			{#if isActionsOpen}
+				<!-- svelte-ignore a11y_click_events_have_key_events -->
+				<!-- svelte-ignore a11y_no_static_element_interactions -->
+				<div 
+					class="fixed inset-0 z-40" 
+					onclick={() => isActionsOpen = false}
+				></div>
+				<div 
+					class="absolute right-0 mt-2 w-48 bg-card border border-border/50 rounded-xl shadow-lg overflow-hidden py-1 z-50 animate-in fade-in slide-in-from-top-2"
+				>
+					<button 
+						onclick={handleSyncTrades}
+						disabled={isSyncing}
+						class="w-full text-left px-4 py-2.5 text-sm hover:bg-secondary/50 flex items-center gap-2 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-foreground"
+					>
+						<RefreshCw size={16} class={isSyncing ? "animate-spin" : ""} />
+						<span>Sync Trades</span>
+					</button>
+				</div>
+			{/if}
+		</div>
+	</div>
+
+	{#if toastMessage}
+		<div class="fixed bottom-6 right-6 z-50 animate-in slide-in-from-bottom-5 fade-in duration-300">
+			<div class="px-6 py-3 rounded-xl shadow-lg font-medium border flex items-center gap-3 {toastType === 'success' ? 'bg-green-50 text-green-900 border-green-200' : 'bg-red-50 text-red-900 border-red-200'}">
+				{#if toastType === 'success'}
+					<div class="w-2.5 h-2.5 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+				{:else}
+					<div class="w-2.5 h-2.5 rounded-full bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]"></div>
+				{/if}
+				{toastMessage}
+			</div>
+		</div>
+	{/if}
+
 	{#if isLoading}
 		<div class="flex items-center justify-center p-12">
 			<div
