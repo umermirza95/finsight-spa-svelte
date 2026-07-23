@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
-	import { Activity, ChevronDown, ChevronUp, Calendar, Search, Filter, X, MoreHorizontal, RefreshCw } from "lucide-svelte";
+	import { Activity, ChevronDown, ChevronUp, Calendar, Search, Filter, X, MoreHorizontal, RefreshCw, Settings, Save, Server, WifiOff } from "lucide-svelte";
 	import * as Collapsible from "$lib/components/ui/collapsible";
 	import TickerIcon from "$lib/components/TickerIcon.svelte";
 
@@ -26,6 +26,18 @@
 	let filterEndDate = $state("");
 	let filterTicker = $state("");
 	let isFilterPopupOpen = $state(false);
+
+	let ibkrConnected = $state(false);
+	let tradingConfig = $state<any>({});
+	let isConfigModalOpen = $state(false);
+	let isSavingConfig = $state(false);
+	
+	let editAutoTrade = $state(false);
+	let editLogsOnly = $state(false);
+	let editSharesPerTranche = $state(0);
+	let editDistancePerTranche = $state(0);
+	let editDefaultUserId = $state("");
+	let editTicker = $state("");
 
 	function toggleTicker(ticker: string) {
 		expandedTickers[ticker] = !expandedTickers[ticker];
@@ -211,8 +223,71 @@
 		}
 	}
 
+	async function fetchConfig() {
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) return;
+			const res = await fetch("/api/Trading/config", {
+				headers: { Authorization: `Bearer ${token}` }
+			});
+			if (res.ok) {
+				const data = await res.json();
+				tradingConfig = data.config || {};
+				ibkrConnected = data.isConnected || false;
+			}
+		} catch (e) {
+			console.error("Failed to fetch trading config", e);
+		}
+	}
+
+	function openConfigModal() {
+		isActionsOpen = false;
+		editAutoTrade = tradingConfig.autoTrade || false;
+		editLogsOnly = tradingConfig.logsOnly || false;
+		editSharesPerTranche = tradingConfig.sharesPerTranche || 0;
+		editDistancePerTranche = tradingConfig.distancePerTranche || 0;
+		editDefaultUserId = tradingConfig.defaultUserId || "";
+		editTicker = tradingConfig.ticker || "";
+		isConfigModalOpen = true;
+	}
+
+	async function saveConfig() {
+		isSavingConfig = true;
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) throw new Error("Not authenticated");
+			const payload = {
+				autoTrade: editAutoTrade,
+				logsOnly: editLogsOnly,
+				sharesPerTranche: editSharesPerTranche,
+				distancePerTranche: editDistancePerTranche,
+				defaultUserId: editDefaultUserId,
+				ticker: editTicker
+			};
+			const res = await fetch("/api/Trading/config", {
+				method: "PUT",
+				headers: { 
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}` 
+				},
+				body: JSON.stringify(payload)
+			});
+			if (!res.ok) throw new Error("Failed to save config");
+			showToast("Configuration saved successfully", "success");
+			isConfigModalOpen = false;
+			await fetchConfig(); // Refresh immediately
+		} catch(error: any) {
+			showToast(error.message, "error");
+		} finally {
+			isSavingConfig = false;
+		}
+	}
+
 	onMount(() => {
 		loadData();
+		fetchConfig();
+		const interval = setInterval(fetchConfig, 2000);
+		return () => clearInterval(interval);
 	});
 
 	function formatCurrency(amount: number | string, currency: string = "USD") {
@@ -238,7 +313,20 @@
 
 <div class="space-y-8 pb-12 relative">
 	<!-- Actions and Toast -->
-	<div class="flex justify-end mb-4">
+	<div class="flex items-center justify-between mb-4">
+		<div class="flex items-center">
+			{#if ibkrConnected}
+				<div class="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-600 border border-green-500/20 rounded-lg text-sm font-medium">
+					<Server size={16} />
+					<span>IBKR Connected</span>
+				</div>
+			{:else}
+				<div class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-600 border border-red-500/20 rounded-lg text-sm font-medium">
+					<WifiOff size={16} />
+					<span>IBKR Disconnected</span>
+				</div>
+			{/if}
+		</div>
 		<div class="relative">
 			<button 
 				onclick={() => isActionsOpen = !isActionsOpen}
@@ -265,6 +353,13 @@
 					>
 						<RefreshCw size={16} class={isSyncing ? "animate-spin" : ""} />
 						<span>Sync Trades</span>
+					</button>
+					<button 
+						onclick={openConfigModal}
+						class="w-full text-left px-4 py-2.5 text-sm hover:bg-secondary/50 flex items-center gap-2 transition-colors text-foreground"
+					>
+						<Settings size={16} />
+						<span>Edit Config</span>
 					</button>
 				</div>
 			{/if}
@@ -628,6 +723,60 @@
 				</button>
 				<button onclick={() => { isFilterPopupOpen = false; applyFilters(); }} class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors">
 					Apply Filters
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isConfigModalOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4" onclick={(e) => { if (e.target === e.currentTarget) isConfigModalOpen = false; }}>
+		<div class="bg-card border border-border rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col">
+			<div class="p-6 border-b border-border/50 flex items-center justify-between">
+				<h3 class="text-lg font-bold text-foreground">Edit Trading Config</h3>
+				<button onclick={() => isConfigModalOpen = false} class="text-muted-foreground hover:text-foreground">
+					<X size={20} />
+				</button>
+			</div>
+			<div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+				<div class="space-y-2 flex items-center gap-3">
+					<input type="checkbox" bind:checked={editAutoTrade} id="autotrade" class="w-4 h-4 rounded border-border" />
+					<label for="autotrade" class="text-sm font-medium text-foreground">Auto Trade</label>
+				</div>
+				<div class="space-y-2 flex items-center gap-3">
+					<input type="checkbox" bind:checked={editLogsOnly} id="logsonly" class="w-4 h-4 rounded border-border" />
+					<label for="logsonly" class="text-sm font-medium text-foreground">Logs Only</label>
+				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">Shares Per Tranche</label>
+					<input type="number" bind:value={editSharesPerTranche} class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">Distance Per Tranche</label>
+					<input type="number" step="0.01" bind:value={editDistancePerTranche} class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">Default User ID</label>
+					<input type="text" bind:value={editDefaultUserId} class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground">Ticker</label>
+					<input type="text" bind:value={editTicker} placeholder="e.g. AAPL" class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50" />
+				</div>
+			</div>
+			<div class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3">
+				<button onclick={() => isConfigModalOpen = false} class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors">
+					Cancel
+				</button>
+				<button onclick={saveConfig} disabled={isSavingConfig} class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors flex justify-center items-center gap-2">
+					{#if isSavingConfig}
+						<div class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+					{:else}
+						<Save size={16} />
+					{/if}
+					Save Config
 				</button>
 			</div>
 		</div>
