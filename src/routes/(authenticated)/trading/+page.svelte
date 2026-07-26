@@ -40,6 +40,14 @@
 	let isAdjustingPrice = $state(false);
 	let activeOrderDropdown = $state<number | null>(null);
 
+	// Cancel Order Modal State
+	let isCancelOrderModalOpen = $state(false);
+	let cancelTargetOrderId = $state<number | null>(null);
+	let isCancellingOrder = $state(false);
+
+	let isCancelAllModalOpen = $state(false);
+	let isCancellingAllOrders = $state(false);
+
 	// Open Order Modal State
 	let isOpenOrderModalOpen = $state(false);
 	let newOrderTicker = $state("");
@@ -423,6 +431,56 @@
 		}
 	}
 
+	async function confirmCancelOrder() {
+		if (cancelTargetOrderId === null) return;
+		isCancellingOrder = true;
+		try {
+			const res = await fetch(`/api/Trading/active-orders/${cancelTargetOrderId}`, {
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				},
+			});
+			if (res.ok) {
+				showToast("Order cancelled successfully.", "success");
+				isCancelOrderModalOpen = false;
+				cancelTargetOrderId = null;
+				await loadActiveOrders(localStorage.getItem("authToken") || "");
+			} else {
+				const data = await res.json();
+				showToast(data.error || "Failed to cancel order.", "error");
+			}
+		} catch (err: any) {
+			showToast(err.message || "Failed to cancel order.", "error");
+		} finally {
+			isCancellingOrder = false;
+		}
+	}
+
+	async function confirmCancelAllOrders() {
+		isCancellingAllOrders = true;
+		try {
+			const res = await fetch(`/api/Trading/active-orders`, {
+				method: "DELETE",
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				},
+			});
+			if (res.ok) {
+				showToast("All orders cancelled successfully.", "success");
+				isCancelAllModalOpen = false;
+				await loadActiveOrders(localStorage.getItem("authToken") || "");
+			} else {
+				const data = await res.json();
+				showToast(data.error || "Failed to cancel all orders.", "error");
+			}
+		} catch (err: any) {
+			showToast(err.message || "Failed to cancel all orders.", "error");
+		} finally {
+			isCancellingAllOrders = false;
+		}
+	}
+
 	onMount(() => {
 		loadData();
 		fetchConfig();
@@ -522,6 +580,16 @@
 					>
 						<Settings size={16} />
 						<span>Edit Config</span>
+					</button>
+					<button
+						onclick={() => {
+							isActionsOpen = false;
+							isCancelAllModalOpen = true;
+						}}
+						class="w-full text-left px-4 py-2.5 text-sm hover:bg-red-50 text-red-600 flex items-center gap-2 transition-colors"
+					>
+						<X size={16} />
+						<span>Cancel All Orders</span>
 					</button>
 				</div>
 			{/if}
@@ -704,6 +772,16 @@
 													}}
 												>
 													Adjust Price
+												</button>
+												<button
+													class="w-full text-left px-4 py-3 text-sm hover:bg-red-50 text-red-600 transition-colors"
+													onclick={() => {
+														activeOrderDropdown = null;
+														cancelTargetOrderId = order.orderId;
+														isCancelOrderModalOpen = true;
+													}}
+												>
+													Cancel Order
 												</button>
 											</div>
 										{/if}
@@ -1526,6 +1604,102 @@
 						<Save size={16} />
 					{/if}
 					Place Order
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isCancelOrderModalOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) isCancelOrderModalOpen = false;
+		}}
+	>
+		<div
+			class="bg-card w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border animate-in zoom-in-95"
+		>
+			<div class="p-6">
+				<h3 class="text-xl font-bold text-foreground mb-4">
+					Cancel Order
+				</h3>
+				<p class="text-muted-foreground mb-6">
+					Are you sure you want to cancel this order? This action cannot be undone.
+				</p>
+			</div>
+			<div
+				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
+			>
+				<button
+					onclick={() => (isCancelOrderModalOpen = false)}
+					class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
+				>
+					No, Keep Order
+				</button>
+				<button
+					onclick={confirmCancelOrder}
+					disabled={isCancellingOrder}
+					class="w-full sm:w-1/2 h-10 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors flex justify-center items-center gap-2"
+				>
+					{#if isCancellingOrder}
+						<div
+							class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+						></div>
+					{:else}
+						<X size={16} />
+					{/if}
+					Yes, Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isCancelAllModalOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) isCancelAllModalOpen = false;
+		}}
+	>
+		<div
+			class="bg-card w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border animate-in zoom-in-95"
+		>
+			<div class="p-6">
+				<h3 class="text-xl font-bold text-foreground mb-4">
+					Cancel All Orders
+				</h3>
+				<p class="text-muted-foreground mb-6">
+					Are you sure you want to cancel ALL open orders? This action cannot be undone.
+				</p>
+			</div>
+			<div
+				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
+			>
+				<button
+					onclick={() => (isCancelAllModalOpen = false)}
+					class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
+				>
+					No, Keep Orders
+				</button>
+				<button
+					onclick={confirmCancelAllOrders}
+					disabled={isCancellingAllOrders}
+					class="w-full sm:w-1/2 h-10 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors flex justify-center items-center gap-2"
+				>
+					{#if isCancellingAllOrders}
+						<div
+							class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+						></div>
+					{:else}
+						<X size={16} />
+					{/if}
+					Yes, Cancel All
 				</button>
 			</div>
 		</div>
