@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
 	import { ChevronDown } from 'lucide-svelte';
+	import { apiFetch } from '$lib/api';
 
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
@@ -39,7 +40,7 @@
 			const fromDate = `${year}-01-01`;
 			const toDate = `${year}-12-31`;
 
-			const response = await fetch(`/api/Transactions?From=${fromDate}&To=${toDate}`, {
+			const response = await apiFetch(`/api/Transactions?From=${fromDate}&To=${toDate}`, {
 				headers: {
 					'Authorization': `Bearer ${token}`
 				}

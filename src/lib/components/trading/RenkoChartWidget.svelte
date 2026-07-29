@@ -1,5 +1,6 @@
 <script lang="ts">
     import { RefreshCw, Play, TrendingUp } from 'lucide-svelte';
+    import { apiFetch } from '$lib/api';
 
     // State
     let ticker = $state('AAPL');
@@ -22,7 +23,7 @@
         bricks = [];
 
         try {
-            const res = await fetch('/local-api/ibkr/historical', {
+            const res = await apiFetch('/local-api/ibkr/historical', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ticker, dateStr, onlyRTH })

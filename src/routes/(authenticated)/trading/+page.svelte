@@ -15,6 +15,7 @@
 	} from "lucide-svelte";
 	import * as Collapsible from "$lib/components/ui/collapsible";
 	import TickerIcon from "$lib/components/TickerIcon.svelte";
+	import { apiFetch } from "$lib/api";
 
 	let openTrades = $state<any[]>([]);
 	let activeOrders = $state<any[]>([]);
@@ -25,6 +26,14 @@
 	let isClosedTradesOpen = $state(false);
 	let isActiveOrdersOpen = $state(false);
 	let isOpenTradesOpen = $state(false);
+	let isSellOrdersOpen = $state(false);
+	let sellOrderDropdown = $state<string | null>(null);
+
+	// Match Modal State
+	let isMatchModalOpen = $state(false);
+	let matchTargetSellOrder = $state<any>(null);
+	let selectedBuyOrderId = $state<string | null>(null);
+	let isMatching = $state(false);
 
 	let isActionsOpen = $state(false);
 	let isSyncing = $state(false);
@@ -84,9 +93,12 @@
 		);
 	});
 
+	let buyTrades = $derived(openTrades.filter((t) => t.tradeDirection === 0 || t.tradeDirection === "Buy" || t.tradeDirection === "BUY"));
+	let sellTrades = $derived(openTrades.filter((t) => t.tradeDirection === 1 || t.tradeDirection === "Sell" || t.tradeDirection === "SELL"));
+
 	let groupedOpenTrades = $derived.by(() => {
 		const groups: Record<string, any[]> = {};
-		for (const trade of openTrades) {
+		for (const trade of buyTrades) {
 			const ticker = trade.ticker || "Unknown";
 			if (!groups[ticker]) {
 				groups[ticker] = [];
@@ -166,16 +178,17 @@
 	});
 
 	async function loadOpenTrades(token: string) {
-		const openRes = await fetch("/api/Trading/open", {
+		const openRes = await apiFetch("/api/Trading/open", {
 			headers: { Authorization: `Bearer ${token}` },
 		});
 		if (!openRes.ok) throw new Error("Failed to fetch open trades");
 		const openData = await openRes.json();
 
 		if (Array.isArray(openData)) {
-			openTrades = openData;
+			openTrades = openData.filter((t: any) => t.ticker !== "EUR.USD");
 		} else {
-			openTrades = openData.trades || [];
+			const trades = openData.trades || [];
+			openTrades = trades.filter((t: any) => t.ticker !== "EUR.USD");
 			totalCapital = openData.totalCapital || 0;
 			capitalUsed = openData.capitalUsed || 0;
 			availableTranches = openData.availableTranches || 0;
@@ -188,7 +201,7 @@
 		if (filterEndDate) params.append("endDate", filterEndDate);
 		if (filterTicker) params.append("ticker", filterTicker);
 
-		const closedRes = await fetch(
+		const closedRes = await apiFetch(
 			`/api/Trading/closed?${params.toString()}`,
 			{
 				headers: { Authorization: `Bearer ${token}` },
@@ -202,7 +215,7 @@
 	}
 
 	async function loadActiveOrders(token: string) {
-		const res = await fetch("/api/Trading/active-orders", {
+		const res = await apiFetch("/api/Trading/active-orders", {
 			headers: { Authorization: `Bearer ${token}` },
 		});
 		if (!res.ok) throw new Error("Failed to fetch active orders");
@@ -266,7 +279,7 @@
 			const token = localStorage.getItem("authToken");
 			if (!token) throw new Error("Not authenticated");
 
-			const res = await fetch("/api/Trading/sync", {
+			const res = await apiFetch("/api/Trading/sync", {
 				method: "POST",
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -295,7 +308,7 @@
 		try {
 			const token = localStorage.getItem("authToken");
 			if (!token) return;
-			const res = await fetch("/api/Trading/config", {
+			const res = await apiFetch("/api/Trading/config", {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 			if (res.ok) {
@@ -332,7 +345,7 @@
 				defaultUserId: editDefaultUserId,
 				ticker: editTicker,
 			};
-			const res = await fetch("/api/Trading/config", {
+			const res = await apiFetch("/api/Trading/config", {
 				method: "PUT",
 				headers: {
 					"Content-Type": "application/json",
@@ -356,7 +369,7 @@
 
 		isAdjustingPrice = true;
 		try {
-			const res = await fetch("/api/Trading/active-orders/adjust-price", {
+			const res = await apiFetch("/api/Trading/active-orders/adjust-price", {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -395,7 +408,7 @@
 
 		isPlacingOrder = true;
 		try {
-			const res = await fetch("/api/Trading/active-orders/place-order", {
+			const res = await apiFetch("/api/Trading/active-orders/place-order", {
 				method: "POST",
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -435,7 +448,7 @@
 		if (cancelTargetOrderId === null) return;
 		isCancellingOrder = true;
 		try {
-			const res = await fetch(`/api/Trading/active-orders/${cancelTargetOrderId}`, {
+			const res = await apiFetch(`/api/Trading/active-orders/${cancelTargetOrderId}`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -460,7 +473,7 @@
 	async function confirmCancelAllOrders() {
 		isCancellingAllOrders = true;
 		try {
-			const res = await fetch(`/api/Trading/active-orders`, {
+			const res = await apiFetch(`/api/Trading/active-orders`, {
 				method: "DELETE",
 				headers: {
 					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
@@ -478,6 +491,38 @@
 			showToast(err.message || "Failed to cancel all orders.", "error");
 		} finally {
 			isCancellingAllOrders = false;
+		}
+	}
+
+	async function confirmMatch() {
+		if (!matchTargetSellOrder || !selectedBuyOrderId) return;
+		isMatching = true;
+		try {
+			const res = await apiFetch("/api/Trading/manual-match", {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+					"Content-Type": "application/json",
+				},
+				body: JSON.stringify({
+					buyOrderId: selectedBuyOrderId,
+					sellOrderId: matchTargetSellOrder.externalId,
+				}),
+			});
+			const data = await res.json().catch(() => ({}));
+			if (res.ok) {
+				showToast(data.message || "Trades matched successfully.", "success");
+				isMatchModalOpen = false;
+				matchTargetSellOrder = null;
+				selectedBuyOrderId = null;
+				await loadData();
+			} else {
+				showToast(data.error || "Failed to match trades.", "error");
+			}
+		} catch (err: any) {
+			showToast(err.message || "Failed to match trades.", "error");
+		} finally {
+			isMatching = false;
 		}
 	}
 
@@ -810,7 +855,7 @@
 					<span
 						class="px-2.5 py-0.5 rounded-full bg-brand-blue/20 text-brand-blue-foreground text-sm font-semibold"
 					>
-						{openTrades.length}
+						{buyTrades.length}
 					</span>
 					<span
 						class="px-2 py-0.5 rounded-full bg-brand-blue/30 text-brand-blue-foreground text-xs font-semibold ml-2"
@@ -999,6 +1044,142 @@
 				{/if}
 			</Collapsible.Content>
 		</Collapsible.Root>
+
+		<!-- Sell Orders Section -->
+		{#if sellTrades.length > 0}
+		<Collapsible.Root
+			bind:open={isSellOrdersOpen}
+			class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-8"
+		>
+			<div
+				class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50"
+			>
+				<div class="flex items-center gap-3">
+					<h2 class="text-xl font-bold text-foreground">
+						Sell Orders
+					</h2>
+					<span
+						class="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-600 text-sm font-semibold"
+					>
+						{sellTrades.length}
+					</span>
+				</div>
+				<Collapsible.Trigger
+					class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
+				>
+					{#if isSellOrdersOpen}
+						<ChevronUp size={20} />
+					{:else}
+						<ChevronDown size={20} />
+					{/if}
+				</Collapsible.Trigger>
+			</div>
+
+			<Collapsible.Content class="w-full overflow-x-auto">
+				{#if sellTrades.length === 0}
+					<div class="p-12 text-center text-muted-foreground">
+						No sell orders.
+					</div>
+				{:else}
+					<table class="w-full text-sm text-left">
+						<thead
+							class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
+						>
+							<tr>
+								<th
+									class="px-6 py-4 font-semibold tracking-wider"
+									>Ticker</th
+								>
+								<th
+									class="px-6 py-4 font-semibold tracking-wider"
+									>Shares</th
+								>
+								<th
+									class="px-6 py-4 font-semibold tracking-wider"
+									>Trade Price</th
+								>
+								<th
+									class="px-6 py-4 font-semibold tracking-wider"
+									>Current Price</th
+								>
+								<th
+									class="px-6 py-4 font-semibold tracking-wider w-16 text-right"
+									>Actions</th
+								>
+							</tr>
+						</thead>
+						<tbody class="divide-y divide-border/50">
+							{#each sellTrades as trade (trade.id)}
+								<tr
+									class="bg-card hover:bg-secondary/10 transition-colors"
+								>
+									<td class="px-6 py-4">
+										<div class="flex items-center gap-3">
+											<TickerIcon ticker={trade.ticker} />
+											<span
+												class="font-bold text-foreground"
+												>{trade.ticker}</span
+											>
+										</div>
+									</td>
+									<td
+										class="px-6 py-4 font-medium text-foreground"
+										>{trade.quantity}</td
+									>
+									<td class="px-6 py-4 text-foreground"
+										>{formatCurrency(trade.tradePrice)}</td
+									>
+									<td class="px-6 py-4 text-foreground">
+										{trade.currentPrice > 0
+											? formatCurrency(trade.currentPrice)
+											: "N/A"}
+									</td>
+									<td class="px-6 py-4 text-right relative">
+										<button
+											class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
+											onclick={() =>
+												(sellOrderDropdown =
+													sellOrderDropdown ===
+													trade.id
+														? null
+														: trade.id)}
+										>
+											<MoreHorizontal size={20} />
+										</button>
+										{#if sellOrderDropdown === trade.id}
+											<!-- svelte-ignore a11y_click_events_have_key_events -->
+											<!-- svelte-ignore a11y_no_static_element_interactions -->
+											<div
+												class="fixed inset-0 z-40"
+												onclick={() =>
+													(sellOrderDropdown =
+														null)}
+											></div>
+											<div
+												class="absolute right-6 top-12 w-40 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
+											>
+												<button
+													class="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors text-foreground"
+													onclick={() => {
+														sellOrderDropdown = null;
+														matchTargetSellOrder = trade;
+														selectedBuyOrderId = null;
+														isMatchModalOpen = true;
+													}}
+												>
+													Match
+												</button>
+											</div>
+										{/if}
+									</td>
+								</tr>
+							{/each}
+						</tbody>
+					</table>
+				{/if}
+			</Collapsible.Content>
+		</Collapsible.Root>
+		{/if}
 
 		<!-- Closed Trades Section -->
 		<Collapsible.Root
@@ -1492,6 +1673,95 @@
 						<Save size={16} />
 					{/if}
 					Confirm
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isMatchModalOpen && matchTargetSellOrder}
+	{@const matchingBuyTrades = buyTrades.filter(t => t.ticker === matchTargetSellOrder.ticker)}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) isMatchModalOpen = false;
+		}}
+	>
+		<div
+			class="bg-card border border-border rounded-2xl shadow-xl w-full max-w-lg overflow-hidden flex flex-col"
+		>
+			<div
+				class="p-6 border-b border-border/50 flex items-center justify-between"
+			>
+				<h3 class="text-lg font-bold text-foreground">
+					Match Trades for {matchTargetSellOrder.ticker}
+				</h3>
+				<button
+					onclick={() => (isMatchModalOpen = false)}
+					class="text-muted-foreground hover:text-foreground"
+				>
+					<X size={20} />
+				</button>
+			</div>
+			<div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
+				<p class="text-sm text-muted-foreground">
+					Select a BUY order to match with the SELL order of <span class="font-bold text-foreground">{matchTargetSellOrder.quantity}</span> shares at <span class="font-bold text-foreground">{formatCurrency(matchTargetSellOrder.tradePrice)}</span>.
+				</p>
+				
+				{#if matchingBuyTrades.length === 0}
+					<div class="p-4 text-center text-muted-foreground bg-secondary/20 rounded-xl">
+						No matching BUY orders found for {matchTargetSellOrder.ticker}.
+					</div>
+				{:else}
+					<div class="space-y-2">
+						{#each matchingBuyTrades as buyTrade}
+							<label class="flex items-center gap-4 p-4 border border-border rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors {selectedBuyOrderId === buyTrade.externalId ? 'border-primary bg-primary/5' : ''}">
+								<input
+									type="radio"
+									name="buyOrder"
+									value={buyTrade.externalId}
+									bind:group={selectedBuyOrderId}
+									class="w-4 h-4 text-primary bg-background border-border"
+								/>
+								<div class="flex-1 flex justify-between items-center">
+									<div>
+										<div class="font-medium text-foreground">{formatDate(buyTrade.date)}</div>
+										<div class="text-sm text-muted-foreground font-mono">{buyTrade.externalId}</div>
+									</div>
+									<div class="text-right">
+										<div class="font-bold text-foreground">{buyTrade.quantity} Shares</div>
+										<div class="text-sm text-muted-foreground">@ {formatCurrency(buyTrade.tradePrice)}</div>
+									</div>
+								</div>
+							</label>
+						{/each}
+					</div>
+				{/if}
+			</div>
+			<div
+				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
+			>
+				<button
+					onclick={() => (isMatchModalOpen = false)}
+					class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={confirmMatch}
+					disabled={isMatching || !selectedBuyOrderId}
+					class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+				>
+					{#if isMatching}
+						<div
+							class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+						></div>
+					{:else}
+						<Save size={16} />
+					{/if}
+					Confirm Match
 				</button>
 			</div>
 		</div>

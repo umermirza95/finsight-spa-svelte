@@ -4,6 +4,7 @@
 	import { Mail, Lock, EyeOff, Eye } from "lucide-svelte";
 	import { goto } from "$app/navigation";
 	import { isAuthenticated } from "$lib/stores/auth";
+	import { apiFetch } from "$lib/api";
 
 	// Simple theme toggle for demonstration
 	let isDark = $state(false);
@@ -34,7 +35,7 @@
 
 		isLoading = true;
 		try {
-			const res = await fetch("/api/Auth/login", {
+			const res = await apiFetch("/api/Auth/login", {
 				method: "POST",
 				headers: {
 					"Content-Type": "application/json",

@@ -2,6 +2,7 @@
 	import { onMount } from 'svelte';
 	import { ChevronLeft, ChevronRight, Landmark, Banknote } from 'lucide-svelte';
 	import BudgetCard from '$lib/components/BudgetCard.svelte';
+	import { apiFetch } from '$lib/api';
 
 	let isLoading = $state(true);
 	let errorMessage = $state('');
@@ -84,7 +85,7 @@
 			if (!token) throw new Error('Not authenticated');
 
 			// Later: append referenceDate and frequency params
-			const res = await fetch('/api/Budget/active', {
+			const res = await apiFetch('/api/Budget/active', {
 				headers: { 'Authorization': `Bearer ${token}` }
 			});
 

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Chart from 'chart.js/auto';
+	import { apiFetch } from '$lib/api';
 
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
@@ -21,7 +22,7 @@
 			// Fetch Closed Trades for Profit Graph
 			const fromDate = `${currentYear}-01-01`;
 			const toDate = `${currentYear}-12-31`;
-			const closedRes = await fetch(`/api/Trading/closed?startDate=${fromDate}&endDate=${toDate}`, {
+			const closedRes = await apiFetch(`/api/Trading/closed?startDate=${fromDate}&endDate=${toDate}`, {
 				headers: { Authorization: `Bearer ${token}` }
 			});
 			

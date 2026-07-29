@@ -8,6 +8,7 @@
 	import { 
 		Plus, Search, Filter, ChevronDown, ListOrdered, X, Check, Trash2
 	} from 'lucide-svelte';
+	import { apiFetch } from '$lib/api';
 
 	function getLocalDateString(date: Date) {
 		const year = date.getFullYear();
@@ -81,7 +82,7 @@
 		isDeleting = true;
 		try {
 			const token = localStorage.getItem('authToken');
-			const res = await fetch(`/api/Transactions/${transactionToDelete.id}`, {
+			const res = await apiFetch(`/api/Transactions/${transactionToDelete.id}`, {
 				method: 'DELETE',
 				headers: { 'Authorization': `Bearer ${token}` }
 			});
@@ -181,7 +182,7 @@
 			if (!token) throw new Error('Not authenticated');
 
 			// 1. Fetch Categories
-			const catRes = await fetch('/api/Category', {
+			const catRes = await apiFetch('/api/Category', {
 				headers: { 'Authorization': `Bearer ${token}` }
 			});
 			if (catRes.ok) {
@@ -197,7 +198,7 @@
 			if (filter.CategoryId) params.append('CategoryId', filter.CategoryId);
 			if (filter.SearchQuery) params.append('SearchQuery', filter.SearchQuery);
 
-			const txRes = await fetch(`/api/Transactions?${params.toString()}`, {
+			const txRes = await apiFetch(`/api/Transactions?${params.toString()}`, {
 				headers: { 'Authorization': `Bearer ${token}` }
 			});
 			if (!txRes.ok) throw new Error('Failed to fetch transactions');

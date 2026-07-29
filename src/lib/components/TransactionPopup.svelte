@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { X } from 'lucide-svelte';
+	import { apiFetch } from '$lib/api';
 
 	let {
 		isOpen = false,
@@ -106,7 +107,7 @@
 			const url = transaction ? `/api/Transactions/${transaction.id}` : '/api/Transactions';
 			const method = transaction ? 'PUT' : 'POST';
 
-			const res = await fetch(url, {
+			const res = await apiFetch(url, {
 				method,
 				headers: {
 					'Content-Type': 'application/json',
