@@ -103,6 +103,12 @@
 	});
 
 	let buyTrades = $derived(openTrades.filter((t) => t.tradeDirection === 0 || t.tradeDirection === "Buy" || t.tradeDirection === "BUY"));
+	let totalCapitalDeployed = $derived(
+		buyTrades.reduce(
+			(sum, t) => sum + (t.quantity || 0) * (t.tradePrice || 0),
+			0,
+		)
+	);
 	let sellTrades = $derived(openTrades.filter((t) => t.tradeDirection === 1 || t.tradeDirection === "Sell" || t.tradeDirection === "SELL"));
 
 	let groupedOpenTrades = $derived.by(() => {
@@ -924,7 +930,7 @@
 			class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-8"
 		>
 			<div
-				class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50"
+				class="p-4 md:p-6 border-b border-border/50 flex flex-col sm:flex-row sm:items-center justify-between w-full bg-card/50 gap-4"
 			>
 				<div class="flex items-center gap-3">
 					<h2 class="text-xl font-bold text-foreground">
@@ -940,15 +946,27 @@
 						>Active</span
 					>
 				</div>
-				<Collapsible.Trigger
-					class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
-				>
-					{#if isOpenTradesOpen}
-						<ChevronUp size={20} />
-					{:else}
-						<ChevronDown size={20} />
-					{/if}
-				</Collapsible.Trigger>
+				<div class="flex items-center gap-4">
+					<div
+						class="hidden sm:flex items-center gap-4 bg-background border border-border/60 rounded-xl px-4 py-2"
+					>
+						<span class="text-sm font-medium text-muted-foreground"
+							>Capital Deployed</span
+						>
+						<span class="text-lg font-bold text-foreground">
+							{formatCurrency(totalCapitalDeployed)}
+						</span>
+					</div>
+					<Collapsible.Trigger
+						class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
+					>
+						{#if isOpenTradesOpen}
+							<ChevronUp size={20} />
+						{:else}
+							<ChevronDown size={20} />
+						{/if}
+					</Collapsible.Trigger>
+				</div>
 			</div>
 
 			<Collapsible.Content class="w-full overflow-x-auto">
@@ -1456,7 +1474,7 @@
 													trade.sellPrice,
 												)}</td
 											>
-											<td class="px-6 py-3">
+											<td class="px-6 py-3 flex flex-col">
 												<span
 													class="font-bold {trade.netProfit >=
 													0
@@ -1469,6 +1487,11 @@
 														trade.netProfit,
 													)}
 												</span>
+												{#if trade.insuranceCoveredLoss > 0}
+													<span class="text-xs text-muted-foreground mt-1">
+														(Covered: {formatCurrency(trade.insuranceCoveredLoss)})
+													</span>
+												{/if}
 											</td>
 										</tr>
 									{/each}
