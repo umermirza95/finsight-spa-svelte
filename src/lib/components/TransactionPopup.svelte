@@ -7,13 +7,15 @@
 		onClose,
 		onSuccess,
 		categories = [],
-		transaction = null
+		transaction = null,
+		isImported = false
 	} = $props<{
 		isOpen: boolean;
 		onClose: () => void;
 		onSuccess: () => void;
 		categories?: any[];
 		transaction?: any;
+		isImported?: boolean;
 	}>();
 
 	let isSubmitting = $state(false);
@@ -104,8 +106,17 @@
 				comment
 			};
 
-			const url = transaction ? `/api/Transactions/${transaction.id}` : '/api/Transactions';
-			const method = transaction ? 'PUT' : 'POST';
+			if (isImported && transaction) {
+				if (Array.isArray(transaction.id)) {
+					(payload as any).fsImportedTransactionIds = transaction.id;
+				} else {
+					(payload as any).fsImportedTransactionIds = [transaction.id];
+				}
+			}
+
+			const isEditing = transaction && !isImported;
+			const url = isEditing ? `/api/Transactions/${transaction.id}` : '/api/Transactions';
+			const method = isEditing ? 'PUT' : 'POST';
 
 			const res = await apiFetch(url, {
 				method,
@@ -147,7 +158,7 @@
 			<!-- Header -->
 			<div class="flex items-center justify-between p-6 border-b border-border/50 bg-card/50">
 				<h2 class="text-xl font-bold text-foreground">
-					{transaction ? 'Edit Transaction' : 'Add Transaction'}
+					{transaction && !isImported ? 'Edit Transaction' : 'Add Transaction'}
 				</h2>
 				<button 
 					type="button"

@@ -33,6 +33,7 @@
 	let pageInfo = $derived.by(() => {
 		const path = $page.url.pathname;
 		if (path === '/' || path.startsWith('/dashboard')) return { title: 'Dashboard', desc: 'Your financial overview and recent activity.' };
+		if (path.startsWith('/transactions/import')) return { title: 'Imported Transactions', desc: 'Manage and review your automatically extracted transactions.' };
 		if (path.startsWith('/transactions')) return { title: 'Transactions', desc: 'Manage and monitor your institutional cash flow in real-time.' };
 		if (path.startsWith('/budgets')) return { title: 'Budgets', desc: 'Track and manage your spending limits.' };
 		if (path.startsWith('/assets')) return { title: 'Assets', desc: 'Monitor your portfolio and asset allocation.' };

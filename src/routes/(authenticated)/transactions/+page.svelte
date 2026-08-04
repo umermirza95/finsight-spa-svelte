@@ -157,6 +157,7 @@
 	}
 
 	let isSortOpen = $state(false);
+	let isActionsOpen = $state(false);
 	let sortOption = $state('date-desc'); // date-desc, date-asc, amount-desc, amount-asc
 
 	let sortedTransactions = $derived.by(() => {
@@ -225,11 +226,13 @@
 		return cat ? cat.name : 'Unknown';
 	}
 
-	// Close dropdowns when clicking outside
 	function handleOutsideClick(event: MouseEvent) {
 		const target = event.target as HTMLElement;
 		if (!target.closest('.sort-dropdown-container')) {
 			isSortOpen = false;
+		}
+		if (!target.closest('.actions-dropdown-container')) {
+			isActionsOpen = false;
 		}
 		if (!target.closest('.cat-dropdown-container')) {
 			isCategoryDropdownOpen = false;
@@ -289,27 +292,43 @@
 					Filter
 				</button>
 				
-				<div class="relative sort-dropdown-container">
-					<button 
-						onclick={() => isSortOpen = !isSortOpen}
-						class="flex items-center gap-2 px-4 py-2.5 bg-background border border-border/60 rounded-xl text-sm font-medium hover:bg-secondary/50 transition-colors"
-					>
-						<ListOrdered size={16} />
-						Sort
-						<ChevronDown size={14} class="ml-1 opacity-50" />
-					</button>
-					{#if isSortOpen}
-						<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
-							<button onclick={() => { sortOption = 'date-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Newest)</button>
-							<button onclick={() => { sortOption = 'date-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Oldest)</button>
-							<button onclick={() => { sortOption = 'amount-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (High to Low)</button>
-							<button onclick={() => { sortOption = 'amount-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (Low to High)</button>
-						</div>
-					{/if}
+				<div class="flex items-center gap-2">
+					<div class="relative sort-dropdown-container">
+						<button 
+							onclick={() => isSortOpen = !isSortOpen}
+							class="flex items-center justify-center w-10 h-10 bg-background border border-border/60 rounded-xl hover:bg-secondary/50 transition-colors"
+							title="Sort Transactions"
+						>
+							<ListOrdered size={18} />
+						</button>
+						{#if isSortOpen}
+							<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
+								<button onclick={() => { sortOption = 'date-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Newest)</button>
+								<button onclick={() => { sortOption = 'date-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'date-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Date (Oldest)</button>
+								<button onclick={() => { sortOption = 'amount-desc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-desc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (High to Low)</button>
+								<button onclick={() => { sortOption = 'amount-asc'; isSortOpen = false; }} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors {sortOption === 'amount-asc' ? 'bg-secondary/30 font-semibold text-primary' : 'text-muted-foreground'}">Amount (Low to High)</button>
+							</div>
+						{/if}
+					</div>
+	
+					<div class="relative actions-dropdown-container">
+						<button 
+							onclick={() => isActionsOpen = !isActionsOpen}
+							class="flex items-center gap-2 px-4 py-2 bg-background border border-border/60 rounded-xl text-sm font-medium hover:bg-secondary/50 transition-colors h-10"
+						>
+							Actions
+							<ChevronDown size={14} class="opacity-50" />
+						</button>
+						{#if isActionsOpen}
+							<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
+								<a href="/transactions/import" onclick={() => isActionsOpen = false} class="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors text-foreground font-medium">Import Transactions</a>
+							</div>
+						{/if}
+					</div>
 				</div>
 			</div>
 
-			<TransactionList 
+			<TransactionList  
 				transactions={sortedTransactions} 
 				{categories} 
 				{isLoading} 
