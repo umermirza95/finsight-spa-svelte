@@ -57,6 +57,10 @@
 	let isCancelAllModalOpen = $state(false);
 	let isCancellingAllOrders = $state(false);
 
+	// Connection Modal State
+	let isConnectionConfirmModalOpen = $state(false);
+	let isTogglingConnection = $state(false);
+
 	// Open Order Modal State
 	let isOpenOrderModalOpen = $state(false);
 	let newOrderTicker = $state("");
@@ -88,7 +92,7 @@
 	let editLogsOnly = $state(false);
 	let editSharesPerTranche = $state(0);
 	let editDistancePerTranche = $state(0);
-	let editDefaultUserId = $state("");
+	let editServerIp = $state("");
 	let editTicker = $state("");
 
 	function toggleTicker(ticker: string) {
@@ -336,13 +340,65 @@
 		}
 	}
 
+	async function fetchConnectionStatus() {
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) return;
+			const res = await apiFetch("/api/Trading/status", {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			if (res.ok) {
+				const data = await res.json();
+				ibkrConnected = data.isConnected || false;
+			}
+		} catch (e) {
+			console.error("Failed to fetch connection status", e);
+		}
+	}
+
+	function toggleConnection() {
+		isConnectionConfirmModalOpen = true;
+	}
+
+	async function confirmToggleConnection() {
+		const action = ibkrConnected ? "disconnect from" : "connect to";
+		isTogglingConnection = true;
+
+		try {
+			const token = localStorage.getItem("authToken");
+			if (!token) throw new Error("Not authenticated");
+
+			const res = await apiFetch("/api/Trading/connect", {
+				method: "POST",
+				headers: {
+					"Content-Type": "application/json",
+					Authorization: `Bearer ${token}`,
+				},
+				body: JSON.stringify({ connect: !ibkrConnected }),
+			});
+
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+				throw new Error(errorData.error || `Failed to ${action} IBKR`);
+			}
+
+			showToast(`Successfully ${ibkrConnected ? 'disconnected from' : 'connected to'} IBKR`, "success");
+			isConnectionConfirmModalOpen = false;
+			await fetchConnectionStatus(); // Refresh status
+		} catch (error: any) {
+			showToast(error.message, "error");
+		} finally {
+			isTogglingConnection = false;
+		}
+	}
+
 	function openConfigModal() {
 		isActionsOpen = false;
 		editAutoTrade = tradingConfig.autoTrade || false;
 		editLogsOnly = tradingConfig.logsOnly || false;
 		editSharesPerTranche = tradingConfig.sharesPerTranche || 0;
 		editDistancePerTranche = tradingConfig.distancePerTranche || 0;
-		editDefaultUserId = tradingConfig.defaultUserId || "";
+		editServerIp = tradingConfig.serverIp || "";
 		editTicker = tradingConfig.ticker || "";
 		isConfigModalOpen = true;
 	}
@@ -357,7 +413,7 @@
 				logsOnly: editLogsOnly,
 				sharesPerTranche: editSharesPerTranche,
 				distancePerTranche: editDistancePerTranche,
-				defaultUserId: editDefaultUserId,
+				serverIp: editServerIp,
 				ticker: editTicker,
 			};
 			const res = await apiFetch("/api/Trading/config", {
@@ -606,7 +662,8 @@
 	onMount(() => {
 		loadData();
 		fetchConfig();
-		const interval = setInterval(fetchConfig, 2000);
+		fetchConnectionStatus();
+		const interval = setInterval(fetchConnectionStatus, 2000);
 		return () => clearInterval(interval);
 	});
 
@@ -636,19 +693,21 @@
 	<div class="flex items-center justify-between mb-4">
 		<div class="flex items-center">
 			{#if ibkrConnected}
-				<div
-					class="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-600 border border-green-500/20 rounded-lg text-sm font-medium"
+				<button
+					onclick={toggleConnection}
+					class="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 hover:bg-green-500/20 text-green-600 border border-green-500/20 rounded-lg text-sm font-medium transition-colors cursor-pointer"
 				>
 					<Server size={16} />
 					<span>IBKR Connected</span>
-				</div>
+				</button>
 			{:else}
-				<div
-					class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 text-red-600 border border-red-500/20 rounded-lg text-sm font-medium"
+				<button
+					onclick={toggleConnection}
+					class="flex items-center gap-2 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-600 border border-red-500/20 rounded-lg text-sm font-medium transition-colors cursor-pointer"
 				>
 					<WifiOff size={16} />
 					<span>IBKR Disconnected</span>
-				</div>
+				</button>
 			{/if}
 		</div>
 		<div class="relative">
@@ -773,7 +832,7 @@
 			>
 				<div class="flex items-center gap-3">
 					<h2 class="text-xl font-bold text-foreground">
-						Active Broker Orders
+						Active Orders
 					</h2>
 					<span
 						class="px-2.5 py-0.5 rounded-full bg-brand-blue/20 text-brand-blue-foreground text-sm font-semibold"
@@ -1659,11 +1718,12 @@
 				</div>
 				<div class="space-y-2">
 					<label class="text-sm font-medium text-foreground"
-						>Default User ID</label
+						>Server IP</label
 					>
 					<input
 						type="text"
-						bind:value={editDefaultUserId}
+						bind:value={editServerIp}
+						placeholder="e.g. 127.0.0.1"
 						class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
 					/>
 				</div>
@@ -2071,6 +2131,58 @@
 						<X size={16} />
 					{/if}
 					Yes, Cancel All
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isConnectionConfirmModalOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) isConnectionConfirmModalOpen = false;
+		}}
+	>
+		<div
+			class="bg-card w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border animate-in zoom-in-95"
+		>
+			<div class="p-6">
+				<h3 class="text-xl font-bold text-foreground mb-4">
+					{ibkrConnected ? "Disconnect from IBKR" : "Connect to IBKR"}
+				</h3>
+				<p class="text-muted-foreground mb-6">
+					Are you sure you want to {ibkrConnected ? "disconnect from" : "connect to"} the IBKR server?
+				</p>
+			</div>
+			<div
+				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
+			>
+				<button
+					onclick={() => (isConnectionConfirmModalOpen = false)}
+					class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={confirmToggleConnection}
+					disabled={isTogglingConnection}
+					class="w-full sm:w-1/2 h-10 font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 {ibkrConnected ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}"
+				>
+					{#if isTogglingConnection}
+						<div
+							class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
+						></div>
+					{:else}
+						{#if ibkrConnected}
+							<WifiOff size={16} />
+						{:else}
+							<Server size={16} />
+						{/if}
+					{/if}
+					Yes, {ibkrConnected ? "Disconnect" : "Connect"}
 				</button>
 			</div>
 		</div>

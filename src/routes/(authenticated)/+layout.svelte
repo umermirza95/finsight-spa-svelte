@@ -26,7 +26,6 @@
 		{ name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
 		{ name: 'Transactions', path: '/transactions', icon: ArrowRightLeft },
 		{ name: 'Budgets', path: '/budgets', icon: PieChart },
-		{ name: 'Assets', path: '/assets', icon: Briefcase },
 		{ name: 'Trading', path: '/trading', icon: TrendingUp },
 	];
 
@@ -36,7 +35,6 @@
 		if (path.startsWith('/transactions/import')) return { title: 'Imported Transactions', desc: 'Manage and review your automatically extracted transactions.' };
 		if (path.startsWith('/transactions')) return { title: 'Transactions', desc: 'Manage and monitor your institutional cash flow in real-time.' };
 		if (path.startsWith('/budgets')) return { title: 'Budgets', desc: 'Track and manage your spending limits.' };
-		if (path.startsWith('/assets')) return { title: 'Assets', desc: 'Monitor your portfolio and asset allocation.' };
 		if (path.startsWith('/trading/labs')) return { title: 'Trading Labs', desc: 'Analyze historical market data and test new strategies in a sandboxed environment.' };
 		if (path.startsWith('/trading')) return { title: 'Trading', desc: 'Execute trades and monitor market movements.' };
 		return { title: 'Overview', desc: 'Welcome back.' };
