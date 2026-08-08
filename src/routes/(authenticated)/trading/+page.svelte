@@ -106,14 +106,28 @@
 		);
 	});
 
-	let buyTrades = $derived(openTrades.filter((t) => t.tradeDirection === 0 || t.tradeDirection === "Buy" || t.tradeDirection === "BUY"));
+	let buyTrades = $derived(
+		openTrades.filter(
+			(t) =>
+				t.tradeDirection === 0 ||
+				t.tradeDirection === "Buy" ||
+				t.tradeDirection === "BUY",
+		),
+	);
 	let totalCapitalDeployed = $derived(
 		buyTrades.reduce(
 			(sum, t) => sum + (t.quantity || 0) * (t.tradePrice || 0),
 			0,
-		)
+		),
 	);
-	let sellTrades = $derived(openTrades.filter((t) => t.tradeDirection === 1 || t.tradeDirection === "Sell" || t.tradeDirection === "SELL"));
+	let sellTrades = $derived(
+		openTrades.filter(
+			(t) =>
+				t.tradeDirection === 1 ||
+				t.tradeDirection === "Sell" ||
+				t.tradeDirection === "SELL",
+		),
+	);
 
 	let groupedOpenTrades = $derived.by(() => {
 		const groups: Record<string, any[]> = {};
@@ -382,7 +396,10 @@
 				throw new Error(errorData.error || `Failed to ${action} IBKR`);
 			}
 
-			showToast(`Successfully ${ibkrConnected ? 'disconnected from' : 'connected to'} IBKR`, "success");
+			showToast(
+				`Successfully ${ibkrConnected ? "disconnected from" : "connected to"} IBKR`,
+				"success",
+			);
 			isConnectionConfirmModalOpen = false;
 			await fetchConnectionStatus(); // Refresh status
 		} catch (error: any) {
@@ -440,17 +457,20 @@
 
 		isAdjustingPrice = true;
 		try {
-			const res = await apiFetch("/api/Trading/active-orders/adjust-price", {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-					"Content-Type": "application/json",
+			const res = await apiFetch(
+				"/api/Trading/active-orders/adjust-price",
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						permId: adjustPriceTargetOrder.orderId,
+						newPrice: adjustPriceValue,
+					}),
 				},
-				body: JSON.stringify({
-					permId: adjustPriceTargetOrder.orderId,
-					newPrice: adjustPriceValue,
-				}),
-			});
+			);
 			const data = await res.json();
 			if (res.ok) {
 				showToast("Order price adjusted successfully.", "success");
@@ -479,19 +499,22 @@
 
 		isPlacingOrder = true;
 		try {
-			const res = await apiFetch("/api/Trading/active-orders/place-order", {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-					"Content-Type": "application/json",
+			const res = await apiFetch(
+				"/api/Trading/active-orders/place-order",
+				{
+					method: "POST",
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+						"Content-Type": "application/json",
+					},
+					body: JSON.stringify({
+						ticker: newOrderTicker,
+						direction: newOrderDirection,
+						quantity: newOrderQuantity,
+						limitPrice: newOrderLimitPrice,
+					}),
 				},
-				body: JSON.stringify({
-					ticker: newOrderTicker,
-					direction: newOrderDirection,
-					quantity: newOrderQuantity,
-					limitPrice: newOrderLimitPrice,
-				}),
-			});
+			);
 			const data = await res.json();
 			if (res.ok) {
 				showToast("Order placed successfully.", "success");
@@ -502,7 +525,9 @@
 				if (data.orders) {
 					activeOrders = data.orders;
 				} else {
-					await loadActiveOrders(localStorage.getItem("authToken") || ""); // refresh the list
+					await loadActiveOrders(
+						localStorage.getItem("authToken") || "",
+					); // refresh the list
 				}
 			} else {
 				showToast("Failed to place order: " + data.error, "error");
@@ -519,12 +544,15 @@
 		if (cancelTargetOrderId === null) return;
 		isCancellingOrder = true;
 		try {
-			const res = await apiFetch(`/api/Trading/active-orders/${cancelTargetOrderId}`, {
-				method: "DELETE",
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+			const res = await apiFetch(
+				`/api/Trading/active-orders/${cancelTargetOrderId}`,
+				{
+					method: "DELETE",
+					headers: {
+						Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+					},
 				},
-			});
+			);
 			if (res.ok) {
 				showToast("Order cancelled successfully.", "success");
 				isCancelOrderModalOpen = false;
@@ -556,7 +584,10 @@
 				await loadActiveOrders(localStorage.getItem("authToken") || "");
 			} else {
 				const data = await res.json();
-				showToast(data.error || "Failed to cancel all orders.", "error");
+				showToast(
+					data.error || "Failed to cancel all orders.",
+					"error",
+				);
 			}
 		} catch (err: any) {
 			showToast(err.message || "Failed to cancel all orders.", "error");
@@ -582,7 +613,10 @@
 			});
 			const data = await res.json().catch(() => ({}));
 			if (res.ok) {
-				showToast(data.message || "Trades matched successfully.", "success");
+				showToast(
+					data.message || "Trades matched successfully.",
+					"success",
+				);
 				isMatchModalOpen = false;
 				matchTargetSellOrder = null;
 				selectedBuyOrderId = null;
@@ -626,7 +660,10 @@
 	}
 
 	async function submitProfitDistribution() {
-		if (profitDistributionAmount <= 0 || profitDistributionAmount > availableBalance) {
+		if (
+			profitDistributionAmount <= 0 ||
+			profitDistributionAmount > availableBalance
+		) {
 			showToast("Invalid amount.", "error");
 			return;
 		}
@@ -641,20 +678,29 @@
 				},
 				body: JSON.stringify({
 					amount: profitDistributionAmount,
-					type: profitDistributionType
+					type: profitDistributionType,
 				}),
 			});
 			const data = await res.json().catch(() => ({}));
 			if (res.ok) {
-				showToast(data.message || "Profit distribution successful.", "success");
+				showToast(
+					data.message || "Profit distribution successful.",
+					"success",
+				);
 				isProfitDistributionModalOpen = false;
 				// update balance locally to reflect change instantly
 				availableBalance -= profitDistributionAmount;
 			} else {
-				showToast(data.error || "Failed to submit profit distribution.", "error");
+				showToast(
+					data.error || "Failed to submit profit distribution.",
+					"error",
+				);
 			}
 		} catch (err: any) {
-			showToast(err.message || "Failed to submit profit distribution.", "error");
+			showToast(
+				err.message || "Failed to submit profit distribution.",
+				"error",
+			);
 		} finally {
 			isSubmittingDistribution = false;
 		}
@@ -684,6 +730,7 @@
 			month: "short",
 			day: "numeric",
 			year: "numeric",
+			timeZone: "UTC",
 		});
 	}
 </script>
@@ -823,164 +870,174 @@
 	{:else}
 		<!-- Active Orders Section -->
 		{#if activeOrders.length > 0}
-		<Collapsible.Root
-			bind:open={isActiveOrdersOpen}
-			class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-8"
-		>
-			<div
-				class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50"
+			<Collapsible.Root
+				bind:open={isActiveOrdersOpen}
+				class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-8"
 			>
-				<div class="flex items-center gap-3">
-					<h2 class="text-xl font-bold text-foreground">
-						Active Orders
-					</h2>
-					<span
-						class="px-2.5 py-0.5 rounded-full bg-brand-blue/20 text-brand-blue-foreground text-sm font-semibold"
-					>
-						{activeOrders.length}
-					</span>
-				</div>
-				<Collapsible.Trigger
-					class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
+				<div
+					class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50"
 				>
-					{#if isActiveOrdersOpen}
-						<ChevronUp size={20} />
-					{:else}
-						<ChevronDown size={20} />
-					{/if}
-				</Collapsible.Trigger>
-			</div>
-
-			<Collapsible.Content class="w-full overflow-x-auto">
-				{#if activeOrders.length === 0}
-					<div class="p-12 text-center text-muted-foreground">
-						No active broker orders.
-					</div>
-				{:else}
-					<table class="w-full text-sm text-left">
-						<thead
-							class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
+					<div class="flex items-center gap-3">
+						<h2 class="text-xl font-bold text-foreground">
+							Active Orders
+						</h2>
+						<span
+							class="px-2.5 py-0.5 rounded-full bg-brand-blue/20 text-brand-blue-foreground text-sm font-semibold"
 						>
-							<tr>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider w-24"
-									>Order ID</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Ticker</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Action</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Shares</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Limit Price</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider w-16 text-right"
-									>Actions</th
-								>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-border/50">
-							{#each activeOrders as order (order.orderId)}
-								<tr
-									class="bg-card hover:bg-secondary/10 transition-colors"
-								>
-									<td
-										class="px-6 py-4 text-muted-foreground font-mono text-xs"
-										>{order.orderId}</td
+							{activeOrders.length}
+						</span>
+					</div>
+					<Collapsible.Trigger
+						class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
+					>
+						{#if isActiveOrdersOpen}
+							<ChevronUp size={20} />
+						{:else}
+							<ChevronDown size={20} />
+						{/if}
+					</Collapsible.Trigger>
+				</div>
+
+				<Collapsible.Content class="w-full overflow-x-auto">
+					{#if activeOrders.length === 0}
+						<div class="p-12 text-center text-muted-foreground">
+							No active broker orders.
+						</div>
+					{:else}
+						<table class="w-full text-sm text-left">
+							<thead
+								class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
+							>
+								<tr>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider w-24"
+										>Order ID</th
 									>
-									<td class="px-6 py-4">
-										<div class="flex items-center gap-3">
-											<TickerIcon ticker={order.ticker} />
-											<span
-												class="font-bold text-foreground"
-												>{order.ticker}</span
-											>
-										</div>
-									</td>
-									<td class="px-6 py-4">
-										<span
-											class="font-semibold {order.action.toUpperCase() ===
-											'BUY'
-												? 'text-green-600'
-												: 'text-red-600'}"
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Ticker</th
+									>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Action</th
+									>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Shares</th
+									>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Limit Price</th
+									>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider w-16 text-right"
+										>Actions</th
+									>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-border/50">
+								{#each activeOrders as order (order.orderId)}
+									<tr
+										class="bg-card hover:bg-secondary/10 transition-colors"
+									>
+										<td
+											class="px-6 py-4 text-muted-foreground font-mono text-xs"
+											>{order.orderId}</td
 										>
-											{order.action.toUpperCase()}
-										</span>
-									</td>
-									<td
-										class="px-6 py-4 font-medium text-foreground"
-										>{order.quantity}</td
-									>
-									<td class="px-6 py-4 text-foreground"
-										>{formatCurrency(order.limitPrice)}</td
-									>
-									<td class="px-6 py-4 text-right relative">
-										<button
-											class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-											onclick={() =>
-												(activeOrderDropdown =
-													activeOrderDropdown ===
-													order.orderId
-														? null
-														: order.orderId)}
-										>
-											<MoreHorizontal size={20} />
-										</button>
-										{#if activeOrderDropdown === order.orderId}
-											<!-- svelte-ignore a11y_click_events_have_key_events -->
-											<!-- svelte-ignore a11y_no_static_element_interactions -->
+										<td class="px-6 py-4">
 											<div
-												class="fixed inset-0 z-40"
+												class="flex items-center gap-3"
+											>
+												<TickerIcon
+													ticker={order.ticker}
+												/>
+												<span
+													class="font-bold text-foreground"
+													>{order.ticker}</span
+												>
+											</div>
+										</td>
+										<td class="px-6 py-4">
+											<span
+												class="font-semibold {order.action.toUpperCase() ===
+												'BUY'
+													? 'text-green-600'
+													: 'text-red-600'}"
+											>
+												{order.action.toUpperCase()}
+											</span>
+										</td>
+										<td
+											class="px-6 py-4 font-medium text-foreground"
+											>{order.quantity}</td
+										>
+										<td class="px-6 py-4 text-foreground"
+											>{formatCurrency(
+												order.limitPrice,
+											)}</td
+										>
+										<td
+											class="px-6 py-4 text-right relative"
+										>
+											<button
+												class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
 												onclick={() =>
 													(activeOrderDropdown =
-														null)}
-											></div>
-											<div
-												class="absolute right-6 top-12 w-40 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
+														activeOrderDropdown ===
+														order.orderId
+															? null
+															: order.orderId)}
 											>
-												<button
-													class="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors text-foreground"
-													onclick={() => {
-														activeOrderDropdown =
-															null;
-														adjustPriceTargetOrder =
-															order;
-														adjustPriceValue =
-															order.limitPrice;
-														isAdjustPriceModalOpen = true;
-													}}
+												<MoreHorizontal size={20} />
+											</button>
+											{#if activeOrderDropdown === order.orderId}
+												<!-- svelte-ignore a11y_click_events_have_key_events -->
+												<!-- svelte-ignore a11y_no_static_element_interactions -->
+												<div
+													class="fixed inset-0 z-40"
+													onclick={() =>
+														(activeOrderDropdown =
+															null)}
+												></div>
+												<div
+													class="absolute right-6 top-12 w-40 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
 												>
-													Adjust Price
-												</button>
-												<button
-													class="w-full text-left px-4 py-3 text-sm hover:bg-red-50 text-red-600 transition-colors"
-													onclick={() => {
-														activeOrderDropdown = null;
-														cancelTargetOrderId = order.orderId;
-														isCancelOrderModalOpen = true;
-													}}
-												>
-													Cancel Order
-												</button>
-											</div>
-										{/if}
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				{/if}
-			</Collapsible.Content>
-		</Collapsible.Root>
+													<button
+														class="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors text-foreground"
+														onclick={() => {
+															activeOrderDropdown =
+																null;
+															adjustPriceTargetOrder =
+																order;
+															adjustPriceValue =
+																order.limitPrice;
+															isAdjustPriceModalOpen = true;
+														}}
+													>
+														Adjust Price
+													</button>
+													<button
+														class="w-full text-left px-4 py-3 text-sm hover:bg-red-50 text-red-600 transition-colors"
+														onclick={() => {
+															activeOrderDropdown =
+																null;
+															cancelTargetOrderId =
+																order.orderId;
+															isCancelOrderModalOpen = true;
+														}}
+													>
+														Cancel Order
+													</button>
+												</div>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
+				</Collapsible.Content>
+			</Collapsible.Root>
 		{/if}
 
 		<!-- Open Trades Section -->
@@ -1202,138 +1259,151 @@
 
 		<!-- Sell Orders Section -->
 		{#if sellTrades.length > 0}
-		<Collapsible.Root
-			bind:open={isSellOrdersOpen}
-			class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-8"
-		>
-			<div
-				class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50"
+			<Collapsible.Root
+				bind:open={isSellOrdersOpen}
+				class="bg-card border border-border/50 rounded-3xl shadow-sm overflow-hidden flex flex-col mb-8"
 			>
-				<div class="flex items-center gap-3">
-					<h2 class="text-xl font-bold text-foreground">
-						Sell Orders
-					</h2>
-					<span
-						class="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-600 text-sm font-semibold"
-					>
-						{sellTrades.length}
-					</span>
-				</div>
-				<Collapsible.Trigger
-					class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
+				<div
+					class="p-4 md:p-6 border-b border-border/50 flex items-center justify-between w-full bg-card/50"
 				>
-					{#if isSellOrdersOpen}
-						<ChevronUp size={20} />
-					{:else}
-						<ChevronDown size={20} />
-					{/if}
-				</Collapsible.Trigger>
-			</div>
-
-			<Collapsible.Content class="w-full overflow-x-auto">
-				{#if sellTrades.length === 0}
-					<div class="p-12 text-center text-muted-foreground">
-						No sell orders.
-					</div>
-				{:else}
-					<table class="w-full text-sm text-left">
-						<thead
-							class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
+					<div class="flex items-center gap-3">
+						<h2 class="text-xl font-bold text-foreground">
+							Sell Orders
+						</h2>
+						<span
+							class="px-2.5 py-0.5 rounded-full bg-red-500/20 text-red-600 text-sm font-semibold"
 						>
-							<tr>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Ticker</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Shares</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Trade Price</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider"
-									>Current Price</th
-								>
-								<th
-									class="px-6 py-4 font-semibold tracking-wider w-16 text-right"
-									>Actions</th
-								>
-							</tr>
-						</thead>
-						<tbody class="divide-y divide-border/50">
-							{#each sellTrades as trade (trade.id)}
-								<tr
-									class="bg-card hover:bg-secondary/10 transition-colors"
-								>
-									<td class="px-6 py-4">
-										<div class="flex items-center gap-3">
-											<TickerIcon ticker={trade.ticker} />
-											<span
-												class="font-bold text-foreground"
-												>{trade.ticker}</span
-											>
-										</div>
-									</td>
-									<td
-										class="px-6 py-4 font-medium text-foreground"
-										>{trade.quantity}</td
+							{sellTrades.length}
+						</span>
+					</div>
+					<Collapsible.Trigger
+						class="p-2 bg-secondary/50 hover:bg-secondary rounded-lg transition-colors text-foreground"
+					>
+						{#if isSellOrdersOpen}
+							<ChevronUp size={20} />
+						{:else}
+							<ChevronDown size={20} />
+						{/if}
+					</Collapsible.Trigger>
+				</div>
+
+				<Collapsible.Content class="w-full overflow-x-auto">
+					{#if sellTrades.length === 0}
+						<div class="p-12 text-center text-muted-foreground">
+							No sell orders.
+						</div>
+					{:else}
+						<table class="w-full text-sm text-left">
+							<thead
+								class="text-xs text-muted-foreground uppercase bg-secondary/20 border-b border-border/50"
+							>
+								<tr>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Ticker</th
 									>
-									<td class="px-6 py-4 text-foreground"
-										>{formatCurrency(trade.tradePrice)}</td
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Shares</th
 									>
-									<td class="px-6 py-4 text-foreground">
-										{trade.currentPrice > 0
-											? formatCurrency(trade.currentPrice)
-											: "N/A"}
-									</td>
-									<td class="px-6 py-4 text-right relative">
-										<button
-											class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
-											onclick={() =>
-												(sellOrderDropdown =
-													sellOrderDropdown ===
-													trade.id
-														? null
-														: trade.id)}
-										>
-											<MoreHorizontal size={20} />
-										</button>
-										{#if sellOrderDropdown === trade.id}
-											<!-- svelte-ignore a11y_click_events_have_key_events -->
-											<!-- svelte-ignore a11y_no_static_element_interactions -->
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Trade Price</th
+									>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider"
+										>Current Price</th
+									>
+									<th
+										class="px-6 py-4 font-semibold tracking-wider w-16 text-right"
+										>Actions</th
+									>
+								</tr>
+							</thead>
+							<tbody class="divide-y divide-border/50">
+								{#each sellTrades as trade (trade.id)}
+									<tr
+										class="bg-card hover:bg-secondary/10 transition-colors"
+									>
+										<td class="px-6 py-4">
 											<div
-												class="fixed inset-0 z-40"
+												class="flex items-center gap-3"
+											>
+												<TickerIcon
+													ticker={trade.ticker}
+												/>
+												<span
+													class="font-bold text-foreground"
+													>{trade.ticker}</span
+												>
+											</div>
+										</td>
+										<td
+											class="px-6 py-4 font-medium text-foreground"
+											>{trade.quantity}</td
+										>
+										<td class="px-6 py-4 text-foreground"
+											>{formatCurrency(
+												trade.tradePrice,
+											)}</td
+										>
+										<td class="px-6 py-4 text-foreground">
+											{trade.currentPrice > 0
+												? formatCurrency(
+														trade.currentPrice,
+													)
+												: "N/A"}
+										</td>
+										<td
+											class="px-6 py-4 text-right relative"
+										>
+											<button
+												class="p-2 text-muted-foreground hover:text-foreground hover:bg-secondary rounded-lg transition-colors"
 												onclick={() =>
 													(sellOrderDropdown =
-														null)}
-											></div>
-											<div
-												class="absolute right-6 top-12 w-40 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
+														sellOrderDropdown ===
+														trade.id
+															? null
+															: trade.id)}
 											>
-												<button
-													class="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors text-foreground"
-													onclick={() => {
-														sellOrderDropdown = null;
-														matchTargetSellOrder = trade;
-														selectedBuyOrderId = null;
-														isMatchModalOpen = true;
-													}}
+												<MoreHorizontal size={20} />
+											</button>
+											{#if sellOrderDropdown === trade.id}
+												<!-- svelte-ignore a11y_click_events_have_key_events -->
+												<!-- svelte-ignore a11y_no_static_element_interactions -->
+												<div
+													class="fixed inset-0 z-40"
+													onclick={() =>
+														(sellOrderDropdown =
+															null)}
+												></div>
+												<div
+													class="absolute right-6 top-12 w-40 bg-card border border-border shadow-lg rounded-xl overflow-hidden z-50 animate-in fade-in slide-in-from-top-2"
 												>
-													Match
-												</button>
-											</div>
-										{/if}
-									</td>
-								</tr>
-							{/each}
-						</tbody>
-					</table>
-				{/if}
-			</Collapsible.Content>
-		</Collapsible.Root>
+													<button
+														class="w-full text-left px-4 py-3 text-sm hover:bg-secondary transition-colors text-foreground"
+														onclick={() => {
+															sellOrderDropdown =
+																null;
+															matchTargetSellOrder =
+																trade;
+															selectedBuyOrderId =
+																null;
+															isMatchModalOpen = true;
+														}}
+													>
+														Match
+													</button>
+												</div>
+											{/if}
+										</td>
+									</tr>
+								{/each}
+							</tbody>
+						</table>
+					{/if}
+				</Collapsible.Content>
+			</Collapsible.Root>
 		{/if}
 
 		<!-- Closed Trades Section -->
@@ -1547,8 +1617,12 @@
 													)}
 												</span>
 												{#if trade.insuranceCoveredLoss > 0}
-													<span class="text-xs text-muted-foreground mt-1">
-														(Covered: {formatCurrency(trade.insuranceCoveredLoss)})
+													<span
+														class="text-xs text-muted-foreground mt-1"
+													>
+														(Covered: {formatCurrency(
+															trade.insuranceCoveredLoss,
+														)})
 													</span>
 												{/if}
 											</td>
@@ -1841,7 +1915,11 @@
 {/if}
 
 {#if isMatchModalOpen && matchTargetSellOrder}
-	{@const matchingBuyTrades = buyTrades.filter(t => t.ticker === matchTargetSellOrder.ticker)}
+	{@const matchingBuyTrades = buyTrades.filter(
+		(t) =>
+			t.ticker === matchTargetSellOrder.ticker &&
+			new Date(t.date) < new Date(matchTargetSellOrder.date),
+	)}
 	<!-- svelte-ignore a11y_click_events_have_key_events -->
 	<!-- svelte-ignore a11y_no_static_element_interactions -->
 	<div
@@ -1868,17 +1946,31 @@
 			</div>
 			<div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
 				<p class="text-sm text-muted-foreground">
-					Select a BUY order to match with the SELL order of <span class="font-bold text-foreground">{matchTargetSellOrder.quantity}</span> shares at <span class="font-bold text-foreground">{formatCurrency(matchTargetSellOrder.tradePrice)}</span>.
+					Select a BUY order to match with the SELL order of <span
+						class="font-bold text-foreground"
+						>{matchTargetSellOrder.quantity}</span
+					>
+					shares at
+					<span class="font-bold text-foreground"
+						>{formatCurrency(matchTargetSellOrder.tradePrice)}</span
+					>.
 				</p>
-				
+
 				{#if matchingBuyTrades.length === 0}
-					<div class="p-4 text-center text-muted-foreground bg-secondary/20 rounded-xl">
+					<div
+						class="p-4 text-center text-muted-foreground bg-secondary/20 rounded-xl"
+					>
 						No matching BUY orders found for {matchTargetSellOrder.ticker}.
 					</div>
 				{:else}
 					<div class="space-y-2">
 						{#each matchingBuyTrades as buyTrade}
-							<label class="flex items-center gap-4 p-4 border border-border rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors {selectedBuyOrderId === buyTrade.externalId ? 'border-primary bg-primary/5' : ''}">
+							<label
+								class="flex items-center gap-4 p-4 border border-border rounded-xl cursor-pointer hover:bg-secondary/10 transition-colors {selectedBuyOrderId ===
+								buyTrade.externalId
+									? 'border-primary bg-primary/5'
+									: ''}"
+							>
 								<input
 									type="radio"
 									name="buyOrder"
@@ -1886,14 +1978,32 @@
 									bind:group={selectedBuyOrderId}
 									class="w-4 h-4 text-primary bg-background border-border"
 								/>
-								<div class="flex-1 flex justify-between items-center">
+								<div
+									class="flex-1 flex justify-between items-center"
+								>
 									<div>
-										<div class="font-medium text-foreground">{formatDate(buyTrade.date)}</div>
-										<div class="text-sm text-muted-foreground font-mono">{buyTrade.externalId}</div>
+										<div
+											class="font-medium text-foreground"
+										>
+											{formatDate(buyTrade.date)}
+										</div>
+										<div
+											class="text-sm text-muted-foreground font-mono"
+										>
+											{buyTrade.externalId}
+										</div>
 									</div>
 									<div class="text-right">
-										<div class="font-bold text-foreground">{buyTrade.quantity} Shares</div>
-										<div class="text-sm text-muted-foreground">@ {formatCurrency(buyTrade.tradePrice)}</div>
+										<div class="font-bold text-foreground">
+											{buyTrade.quantity} Shares
+										</div>
+										<div
+											class="text-sm text-muted-foreground"
+										>
+											@ {formatCurrency(
+												buyTrade.tradePrice,
+											)}
+										</div>
 									</div>
 								</div>
 							</label>
@@ -2058,7 +2168,8 @@
 					Cancel Order
 				</h3>
 				<p class="text-muted-foreground mb-6">
-					Are you sure you want to cancel this order? This action cannot be undone.
+					Are you sure you want to cancel this order? This action
+					cannot be undone.
 				</p>
 			</div>
 			<div
@@ -2106,7 +2217,8 @@
 					Cancel All Orders
 				</h3>
 				<p class="text-muted-foreground mb-6">
-					Are you sure you want to cancel ALL open orders? This action cannot be undone.
+					Are you sure you want to cancel ALL open orders? This action
+					cannot be undone.
 				</p>
 			</div>
 			<div
@@ -2143,7 +2255,8 @@
 	<div
 		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
 		onclick={(e) => {
-			if (e.target === e.currentTarget) isConnectionConfirmModalOpen = false;
+			if (e.target === e.currentTarget)
+				isConnectionConfirmModalOpen = false;
 		}}
 	>
 		<div
@@ -2154,7 +2267,9 @@
 					{ibkrConnected ? "Disconnect from IBKR" : "Connect to IBKR"}
 				</h3>
 				<p class="text-muted-foreground mb-6">
-					Are you sure you want to {ibkrConnected ? "disconnect from" : "connect to"} the IBKR server?
+					Are you sure you want to {ibkrConnected
+						? "disconnect from"
+						: "connect to"} the IBKR server?
 				</p>
 			</div>
 			<div
@@ -2169,18 +2284,18 @@
 				<button
 					onclick={confirmToggleConnection}
 					disabled={isTogglingConnection}
-					class="w-full sm:w-1/2 h-10 font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 {ibkrConnected ? 'bg-red-600 hover:bg-red-700 text-white' : 'bg-primary hover:bg-primary/90 text-primary-foreground'}"
+					class="w-full sm:w-1/2 h-10 font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 {ibkrConnected
+						? 'bg-red-600 hover:bg-red-700 text-white'
+						: 'bg-primary hover:bg-primary/90 text-primary-foreground'}"
 				>
 					{#if isTogglingConnection}
 						<div
 							class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
 						></div>
+					{:else if ibkrConnected}
+						<WifiOff size={16} />
 					{:else}
-						{#if ibkrConnected}
-							<WifiOff size={16} />
-						{:else}
-							<Server size={16} />
-						{/if}
+						<Server size={16} />
 					{/if}
 					Yes, {ibkrConnected ? "Disconnect" : "Connect"}
 				</button>
@@ -2195,7 +2310,8 @@
 	<div
 		class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
 		onclick={(e) => {
-			if (e.target === e.currentTarget) isProfitDistributionModalOpen = false;
+			if (e.target === e.currentTarget)
+				isProfitDistributionModalOpen = false;
 		}}
 	>
 		<div
@@ -2205,7 +2321,9 @@
 				class="p-6 border-b border-border/50 flex items-center justify-between"
 			>
 				<h3 class="text-lg font-bold text-foreground">
-					{isProfitDistributionConfirmState ? "Confirm Distribution" : "Profit Distribution"}
+					{isProfitDistributionConfirmState
+						? "Confirm Distribution"
+						: "Profit Distribution"}
 				</h3>
 				<button
 					onclick={() => (isProfitDistributionModalOpen = false)}
@@ -2214,30 +2332,56 @@
 					<X size={20} />
 				</button>
 			</div>
-			
+
 			<div class="p-6 space-y-6">
 				{#if isLoadingBalance}
 					<div class="flex justify-center p-4">
-						<div class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"></div>
+						<div
+							class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"
+						></div>
 					</div>
 				{:else if isProfitDistributionConfirmState}
 					<div class="text-center space-y-4">
 						<p class="text-muted-foreground">
-							Are you sure you want to distribute <span class="font-bold text-foreground">{formatCurrency(profitDistributionAmount)}</span> as <span class="font-bold text-foreground">{profitDistributionType === 0 ? "Insurance Reserve" : "Withdrawal"}</span>?
+							Are you sure you want to distribute <span
+								class="font-bold text-foreground"
+								>{formatCurrency(
+									profitDistributionAmount,
+								)}</span
+							>
+							as
+							<span class="font-bold text-foreground"
+								>{profitDistributionType === 0
+									? "Insurance Reserve"
+									: "Withdrawal"}</span
+							>?
 						</p>
-						<div class="p-4 bg-red-500/10 text-red-600 border border-red-500/20 rounded-xl text-sm font-medium">
-							⚠️ This action is irreversible and will permanently deduct from your available balance.
+						<div
+							class="p-4 bg-red-500/10 text-red-600 border border-red-500/20 rounded-xl text-sm font-medium"
+						>
+							⚠️ This action is irreversible and will permanently
+							deduct from your available balance.
 						</div>
 					</div>
 				{:else}
-					<div class="bg-secondary/30 rounded-xl p-4 flex flex-col items-center justify-center border border-border/50">
-						<span class="text-sm font-medium text-muted-foreground mb-1">Available Balance</span>
-						<span class="text-3xl font-bold text-foreground tracking-tight">{formatCurrency(availableBalance)}</span>
+					<div
+						class="bg-secondary/30 rounded-xl p-4 flex flex-col items-center justify-center border border-border/50"
+					>
+						<span
+							class="text-sm font-medium text-muted-foreground mb-1"
+							>Available Balance</span
+						>
+						<span
+							class="text-3xl font-bold text-foreground tracking-tight"
+							>{formatCurrency(availableBalance)}</span
+						>
 					</div>
 
 					<div class="space-y-4">
 						<div class="space-y-2">
-							<label class="text-sm font-medium text-foreground">Distribution Type</label>
+							<label class="text-sm font-medium text-foreground"
+								>Distribution Type</label
+							>
 							<select
 								bind:value={profitDistributionType}
 								class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
@@ -2248,7 +2392,9 @@
 						</div>
 
 						<div class="space-y-2">
-							<label class="text-sm font-medium text-foreground">Amount ($)</label>
+							<label class="text-sm font-medium text-foreground"
+								>Amount ($)</label
+							>
 							<input
 								type="number"
 								min="0.01"
@@ -2267,7 +2413,8 @@
 			>
 				{#if isProfitDistributionConfirmState}
 					<button
-						onclick={() => (isProfitDistributionConfirmState = false)}
+						onclick={() =>
+							(isProfitDistributionConfirmState = false)}
 						class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
 						disabled={isSubmittingDistribution}
 					>
@@ -2295,8 +2442,11 @@
 						Cancel
 					</button>
 					<button
-						onclick={() => (isProfitDistributionConfirmState = true)}
-						disabled={isLoadingBalance || profitDistributionAmount <= 0 || profitDistributionAmount > availableBalance}
+						onclick={() =>
+							(isProfitDistributionConfirmState = true)}
+						disabled={isLoadingBalance ||
+							profitDistributionAmount <= 0 ||
+							profitDistributionAmount > availableBalance}
 						class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
 					>
 						Review
