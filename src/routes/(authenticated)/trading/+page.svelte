@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from "svelte";
+	import { goto } from "$app/navigation";
 	import {
 		Activity,
 		ChevronDown,
@@ -22,6 +23,10 @@
 	let closedTrades = $state<any[]>([]);
 	let isLoading = $state(true);
 	let errorMessage = $state("");
+
+	let totalCapital = $state<number>(0);
+	let capitalUsed = $state<number>(0);
+	let availableTranches = $state<number>(0);
 
 	let isClosedTradesOpen = $state(false);
 	let isActiveOrdersOpen = $state(false);
@@ -70,13 +75,7 @@
 	let isPlacingOrder = $state(false);
 
 	// Profit Distribution Modal State
-	let isProfitDistributionModalOpen = $state(false);
-	let profitDistributionAmount = $state<number>(0);
-	let profitDistributionType = $state<number>(0); // 0 = Insurance, 1 = Withdrawal
-	let availableBalance = $state<number>(0);
-	let isSubmittingDistribution = $state(false);
-	let isLoadingBalance = $state(false);
-	let isProfitDistributionConfirmState = $state(false);
+	// Moved to separate page
 
 	let filterStartDate = $state("");
 	let filterEndDate = $state("");
@@ -630,80 +629,9 @@
 			isMatching = false;
 		}
 	}
-	async function openProfitDistributionModal() {
+	function openProfitDistributionModal() {
 		isActionsOpen = false;
-		isLoadingBalance = true;
-		profitDistributionAmount = 0;
-		profitDistributionType = 0;
-		isProfitDistributionConfirmState = false;
-		isProfitDistributionModalOpen = true;
-
-		try {
-			const res = await apiFetch("/api/Trading/available-balance", {
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-				},
-			});
-			if (res.ok) {
-				const data = await res.json();
-				availableBalance = data.availableBalance || 0;
-			} else {
-				showToast("Failed to fetch available balance", "error");
-				availableBalance = 0;
-			}
-		} catch (err: any) {
-			showToast("Failed to fetch available balance", "error");
-			availableBalance = 0;
-		} finally {
-			isLoadingBalance = false;
-		}
-	}
-
-	async function submitProfitDistribution() {
-		if (
-			profitDistributionAmount <= 0 ||
-			profitDistributionAmount > availableBalance
-		) {
-			showToast("Invalid amount.", "error");
-			return;
-		}
-
-		isSubmittingDistribution = true;
-		try {
-			const res = await apiFetch("/api/Trading/profit-distribution", {
-				method: "POST",
-				headers: {
-					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
-					"Content-Type": "application/json",
-				},
-				body: JSON.stringify({
-					amount: profitDistributionAmount,
-					type: profitDistributionType,
-				}),
-			});
-			const data = await res.json().catch(() => ({}));
-			if (res.ok) {
-				showToast(
-					data.message || "Profit distribution successful.",
-					"success",
-				);
-				isProfitDistributionModalOpen = false;
-				// update balance locally to reflect change instantly
-				availableBalance -= profitDistributionAmount;
-			} else {
-				showToast(
-					data.error || "Failed to submit profit distribution.",
-					"error",
-				);
-			}
-		} catch (err: any) {
-			showToast(
-				err.message || "Failed to submit profit distribution.",
-				"error",
-			);
-		} finally {
-			isSubmittingDistribution = false;
-		}
+		goto("/trading/distribution");
 	}
 	onMount(() => {
 		loadData();
@@ -2304,155 +2232,4 @@
 	</div>
 {/if}
 
-{#if isProfitDistributionModalOpen}
-	<!-- svelte-ignore a11y_click_events_have_key_events -->
-	<!-- svelte-ignore a11y_no_static_element_interactions -->
-	<div
-		class="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-		onclick={(e) => {
-			if (e.target === e.currentTarget)
-				isProfitDistributionModalOpen = false;
-		}}
-	>
-		<div
-			class="bg-card border border-border rounded-2xl shadow-xl w-full max-w-md overflow-hidden flex flex-col animate-in zoom-in-95"
-		>
-			<div
-				class="p-6 border-b border-border/50 flex items-center justify-between"
-			>
-				<h3 class="text-lg font-bold text-foreground">
-					{isProfitDistributionConfirmState
-						? "Confirm Distribution"
-						: "Profit Distribution"}
-				</h3>
-				<button
-					onclick={() => (isProfitDistributionModalOpen = false)}
-					class="text-muted-foreground hover:text-foreground transition-colors"
-				>
-					<X size={20} />
-				</button>
-			</div>
 
-			<div class="p-6 space-y-6">
-				{#if isLoadingBalance}
-					<div class="flex justify-center p-4">
-						<div
-							class="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin"
-						></div>
-					</div>
-				{:else if isProfitDistributionConfirmState}
-					<div class="text-center space-y-4">
-						<p class="text-muted-foreground">
-							Are you sure you want to distribute <span
-								class="font-bold text-foreground"
-								>{formatCurrency(
-									profitDistributionAmount,
-								)}</span
-							>
-							as
-							<span class="font-bold text-foreground"
-								>{profitDistributionType === 0
-									? "Insurance Reserve"
-									: "Withdrawal"}</span
-							>?
-						</p>
-						<div
-							class="p-4 bg-red-500/10 text-red-600 border border-red-500/20 rounded-xl text-sm font-medium"
-						>
-							⚠️ This action is irreversible and will permanently
-							deduct from your available balance.
-						</div>
-					</div>
-				{:else}
-					<div
-						class="bg-secondary/30 rounded-xl p-4 flex flex-col items-center justify-center border border-border/50"
-					>
-						<span
-							class="text-sm font-medium text-muted-foreground mb-1"
-							>Available Balance</span
-						>
-						<span
-							class="text-3xl font-bold text-foreground tracking-tight"
-							>{formatCurrency(availableBalance)}</span
-						>
-					</div>
-
-					<div class="space-y-4">
-						<div class="space-y-2">
-							<label class="text-sm font-medium text-foreground"
-								>Distribution Type</label
-							>
-							<select
-								bind:value={profitDistributionType}
-								class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-							>
-								<option value={0}>Insurance Reserve</option>
-								<option value={1}>Withdrawal</option>
-							</select>
-						</div>
-
-						<div class="space-y-2">
-							<label class="text-sm font-medium text-foreground"
-								>Amount ($)</label
-							>
-							<input
-								type="number"
-								min="0.01"
-								step="0.01"
-								bind:value={profitDistributionAmount}
-								placeholder="0.00"
-								class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
-							/>
-						</div>
-					</div>
-				{/if}
-			</div>
-
-			<div
-				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
-			>
-				{#if isProfitDistributionConfirmState}
-					<button
-						onclick={() =>
-							(isProfitDistributionConfirmState = false)}
-						class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
-						disabled={isSubmittingDistribution}
-					>
-						Go Back
-					</button>
-					<button
-						onclick={submitProfitDistribution}
-						disabled={isSubmittingDistribution}
-						class="w-full sm:w-1/2 h-10 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						{#if isSubmittingDistribution}
-							<div
-								class="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"
-							></div>
-						{:else}
-							<Save size={16} />
-						{/if}
-						Confirm
-					</button>
-				{:else}
-					<button
-						onclick={() => (isProfitDistributionModalOpen = false)}
-						class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
-					>
-						Cancel
-					</button>
-					<button
-						onclick={() =>
-							(isProfitDistributionConfirmState = true)}
-						disabled={isLoadingBalance ||
-							profitDistributionAmount <= 0 ||
-							profitDistributionAmount > availableBalance}
-						class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors flex justify-center items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-					>
-						Review
-					</button>
-				{/if}
-			</div>
-		</div>
-	</div>
-{/if}
