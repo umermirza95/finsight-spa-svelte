@@ -38,7 +38,7 @@
 			From: from,
 			To: to,
 			Type: searchParams.get('Type') || undefined,
-			CategoryId: searchParams.get('CategoryId') || undefined,
+			CategoryIds: searchParams.getAll('CategoryIds'),
 			SearchQuery: searchParams.get('SearchQuery') || undefined
 		};
 	});
@@ -110,7 +110,7 @@
 		draftFrom = filter.From || '';
 		draftTo = filter.To || '';
 		draftType = filter.Type || 'All';
-		draftCategoryIds = filter.CategoryId ? [filter.CategoryId] : [];
+		draftCategoryIds = filter.CategoryIds && filter.CategoryIds.length > 0 ? [...filter.CategoryIds] : [];
 		draftSearchQuery = filter.SearchQuery || '';
 		isFilterModalOpen = true;
 		isCategoryDropdownOpen = false;
@@ -133,7 +133,7 @@
 		if (draftFrom) params.append('From', draftFrom);
 		if (draftTo) params.append('To', draftTo);
 		if (draftType && draftType !== 'All') params.append('Type', draftType);
-		if (draftCategoryIds.length > 0) params.append('CategoryId', draftCategoryIds[0]);
+		draftCategoryIds.forEach(id => params.append('CategoryIds', id));
 		if (draftSearchQuery) params.append('SearchQuery', draftSearchQuery);
 		
 		goto(`?${params.toString()}`);
@@ -196,7 +196,9 @@
 			if (filter.From) params.append('From', filter.From);
 			if (filter.To) params.append('To', filter.To);
 			if (filter.Type) params.append('Type', filter.Type);
-			if (filter.CategoryId) params.append('CategoryId', filter.CategoryId);
+			if (filter.CategoryIds && filter.CategoryIds.length > 0) {
+				filter.CategoryIds.forEach((id: string) => params.append('CategoryIds', id));
+			}
 			if (filter.SearchQuery) params.append('SearchQuery', filter.SearchQuery);
 
 			const txRes = await apiFetch(`/api/Transactions?${params.toString()}`, {

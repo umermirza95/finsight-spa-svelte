@@ -352,7 +352,7 @@
 									/>
 								</td>
 								<td class="p-4 font-medium">{new Date(tx.date).toLocaleDateString()}</td>
-								<td class="p-4 text-muted-foreground truncate max-w-xs" title={tx.description}>{tx.description}</td>
+								<td class="p-4 text-muted-foreground whitespace-normal" title={tx.description}>{tx.description}</td>
 								<td class="p-4">
 									<span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-semibold {tx.type === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}">
 										{tx.type}
