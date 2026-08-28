@@ -465,8 +465,11 @@
 						"Content-Type": "application/json",
 					},
 					body: JSON.stringify({
-						permId: adjustPriceTargetOrder.orderId,
+						orderId: adjustPriceTargetOrder.orderId,
+						conId: adjustPriceTargetOrder.conId,
 						newPrice: adjustPriceValue,
+						quantity: adjustPriceTargetOrder.quantity,
+						action: adjustPriceTargetOrder.action
 					}),
 				},
 			);
