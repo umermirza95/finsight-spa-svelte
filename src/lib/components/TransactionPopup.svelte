@@ -31,6 +31,10 @@
 	let mode = $state(1); // 1 = cash
 	let comment = $state('');
 
+	let wallets = $state<any[]>([]);
+	let fsWalletId = $state('');
+	let isLoadingWallets = $state(false);
+
 	const parseType = (val: any): number => {
 		if (typeof val === 'number') return val;
 		if (typeof val === 'string') {
@@ -53,7 +57,6 @@
 		return 1; // 1 = cash
 	};
 
-	// Reset form when opened or transaction changes
 	$effect(() => {
 		if (isOpen) {
 			if (transaction) {
@@ -65,6 +68,7 @@
 				type = parseType(transaction.type);
 				mode = parseMode(transaction.mode);
 				comment = transaction.comment || '';
+				fsWalletId = transaction.fsWalletId || (wallets.length > 0 ? wallets[0].id : '');
 			} else {
 				amount = '';
 				currency = 'PKR';
@@ -74,10 +78,34 @@
 				type = 1;
 				mode = 1;
 				comment = '';
+				fsWalletId = wallets.length > 0 ? wallets[0].id : '';
 			}
 			errorMessage = '';
+			fetchWallets();
 		}
 	});
+
+	async function fetchWallets() {
+		if (wallets.length > 0) return;
+		isLoadingWallets = true;
+		try {
+			const token = localStorage.getItem('authToken');
+			const res = await apiFetch('/api/Wallet', {
+				headers: { 'Authorization': `Bearer ${token}` }
+			});
+			if (res.ok) {
+				const data = await res.json();
+				wallets = data.data || [];
+				if (!fsWalletId && wallets.length > 0) {
+					fsWalletId = wallets[0].id;
+				}
+			}
+		} catch (e) {
+			console.error('Failed to fetch wallets:', e);
+		} finally {
+			isLoadingWallets = false;
+		}
+	}
 
 	let currentSubCategories = $derived.by(() => {
 		const cat = categories.find((c: any) => c.id === categoryId);
@@ -103,7 +131,8 @@
 				date,
 				type: Number(type),
 				mode: Number(mode),
-				comment
+				comment,
+				fsWalletId
 			};
 
 			if (isImported && transaction) {
@@ -207,6 +236,26 @@
 								<option value="EUR">EUR</option>
 							</select>
 						</div>
+					</div>
+
+					<!-- Wallet -->
+					<div class="space-y-2">
+						<label class="text-sm font-semibold text-foreground">Wallet</label>
+						<select 
+							bind:value={fsWalletId}
+							class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
+							required
+						>
+							{#if isLoadingWallets}
+								<option value="">Loading wallets...</option>
+							{:else if wallets.length === 0}
+								<option value="">No wallets found</option>
+							{:else}
+								{#each wallets as w}
+									<option value={w.id}>{w.name} ({w.fsCurrencyCode})</option>
+								{/each}
+							{/if}
+						</select>
 					</div>
 
 					<!-- Category -->

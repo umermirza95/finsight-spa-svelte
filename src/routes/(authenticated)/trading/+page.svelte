@@ -264,8 +264,8 @@
 			await Promise.all([
 				loadOpenTrades(token),
 				loadClosedTrades(token),
-				loadActiveOrders(token),
 			]);
+			loadActiveOrders(token);
 		} catch (error: any) {
 			errorMessage = error.message;
 		} finally {

@@ -5,7 +5,7 @@
 	import { isAuthenticated } from '$lib/stores/auth';
 	import { 
 		LayoutDashboard, 
-		ArrowRightLeft, 
+		Wallet, 
 		PieChart, 
 		Briefcase, 
 		TrendingUp,
@@ -24,7 +24,7 @@
 
 	const navItems = [
 		{ name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
-		{ name: 'Transactions', path: '/transactions', icon: ArrowRightLeft },
+		{ name: 'Wallets', path: '/wallets', icon: Wallet },
 		{ name: 'Budgets', path: '/budgets', icon: PieChart },
 		{ name: 'Trading', path: '/trading', icon: TrendingUp },
 	];
@@ -32,6 +32,7 @@
 	let pageInfo = $derived.by(() => {
 		const path = $page.url.pathname;
 		if (path === '/' || path.startsWith('/dashboard')) return { title: 'Dashboard', desc: 'Your financial overview and recent activity.' };
+		if (path.startsWith('/wallets')) return { title: 'Wallets', desc: 'Manage your financial accounts and balances.' };
 		if (path.startsWith('/transactions/import')) return { title: 'Imported Transactions', desc: 'Manage and review your automatically extracted transactions.' };
 		if (path.startsWith('/transactions')) return { title: 'Transactions', desc: 'Manage and monitor your institutional cash flow in real-time.' };
 		if (path.startsWith('/budgets')) return { title: 'Budgets', desc: 'Track and manage your spending limits.' };
