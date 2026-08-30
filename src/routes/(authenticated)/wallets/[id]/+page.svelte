@@ -334,7 +334,7 @@
 						</button>
 						{#if isActionsOpen}
 							<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
-								<button onclick={openAddPopup} class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors text-foreground font-medium">Add Transaction</button>
+								<a href={`/wallets/${$page.params.id}/import`} class="block w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors text-foreground font-medium">Import Transaction</a>
 							</div>
 						{/if}
 					</div>
@@ -457,6 +457,8 @@
 							<option value="All">All Transactions</option>
 							<option value="Income">Income</option>
 							<option value="Expense">Expense</option>
+							<option value="transfer_in">Transfer In</option>
+							<option value="transfer_out">Transfer Out</option>
 						</select>
 					</div>
 				</div>

@@ -446,6 +446,8 @@
 							<option value="All">All Transactions</option>
 							<option value="Income">Income</option>
 							<option value="Expense">Expense</option>
+							<option value="transfer_in">Transfer In</option>
+							<option value="transfer_out">Transfer Out</option>
 						</select>
 					</div>
 				</div>

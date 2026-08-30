@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { Wallet as WalletIcon, Coins, RefreshCw } from 'lucide-svelte';
+	import { Wallet as WalletIcon, Coins, MoreVertical } from 'lucide-svelte';
 	import WalletCard from '$lib/components/WalletCard.svelte';
+	import WalletPopup from '$lib/components/WalletPopup.svelte';
 	import { apiFetch } from '$lib/api';
 
 	let isLoading = $state(true);
 	let errorMessage = $state('');
 
 	let wallets = $state<any[]>([]);
+
+	let isWalletPopupOpen = $state(false);
+	let isActionsOpen = $state(false);
 
 	// Derived summaries
 	let totalWallets = $derived(wallets.length);
@@ -77,6 +81,27 @@
 				</div>
 			</div>
 		</div>
+
+		<!-- Controls -->
+		<div class="flex flex-row items-center justify-end w-full xl:w-auto relative">
+			<button 
+				onclick={() => isActionsOpen = !isActionsOpen}
+				class="flex items-center gap-2 px-5 py-2.5 bg-background border border-border/60 hover:bg-secondary/50 rounded-xl text-sm font-medium transition-colors text-foreground shadow-sm"
+			>
+				Actions
+				<MoreVertical size={16} />
+			</button>
+			{#if isActionsOpen}
+				<div class="absolute right-0 top-full mt-2 w-48 bg-popover border border-border/50 rounded-xl shadow-lg z-20 p-2">
+					<button 
+						onclick={() => { isActionsOpen = false; isWalletPopupOpen = true; }} 
+						class="w-full text-left px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors text-foreground font-medium"
+					>
+						Create Wallet
+					</button>
+				</div>
+			{/if}
+		</div>
 	</div>
 
 	<!-- Content Area -->
@@ -109,3 +134,11 @@
 	{/if}
 
 </div>
+
+<WalletPopup 
+	isOpen={isWalletPopupOpen} 
+	onClose={() => isWalletPopupOpen = false} 
+	onSuccess={() => {
+		fetchWallets();
+	}} 
+/>

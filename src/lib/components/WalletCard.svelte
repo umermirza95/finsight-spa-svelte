@@ -8,11 +8,12 @@
 			fsCurrencyCode: string;
 			creationDate: string;
 			initialBalance: number;
+			balance: number;
 		};
 	}>();
 
 	let formattedBalance = $derived(
-		new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet.fsCurrencyCode || 'USD' }).format(wallet.initialBalance || 0)
+		new Intl.NumberFormat('en-US', { style: 'currency', currency: wallet.fsCurrencyCode || 'USD' }).format(wallet.balance || 0)
 	);
 
 	let formattedDate = $derived(
@@ -46,7 +47,7 @@
 	<!-- Balance Section -->
 	<div class="space-y-1 bg-background/50 p-4 rounded-2xl border border-border/40">
 		<div class="flex justify-between items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
-			<span>Initial Balance</span>
+			<span>Current Balance</span>
 			<TrendingUp size={14} class="text-emerald-500/70" />
 		</div>
 		<div class="flex items-baseline gap-1">

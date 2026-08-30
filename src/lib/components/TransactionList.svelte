@@ -85,7 +85,7 @@
 			<tbody class="divide-y divide-border/50">
 				{#each transactions as tx (tx.id)}
 					{@const style = getCategoryStyles(tx)}
-					{@const isIncome = tx.type === 'Income' || tx.type === 0 || tx.type === 'income'}
+					{@const isIncome = tx.type === 'Income' || tx.type === 0 || tx.type === 'income' || tx.type === 2 || tx.type === 'transfer_in'}
 					{@const catName = getCategoryName(tx.categoryId)}
 					<tr class="hover:bg-secondary/10 transition-colors group">
 						<td class="px-6 py-4">

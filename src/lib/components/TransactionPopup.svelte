@@ -41,6 +41,8 @@
 			const lower = val.toLowerCase();
 			if (lower === 'income') return 0;
 			if (lower === 'expense') return 1;
+			if (lower === 'transfer_in') return 2;
+			if (lower === 'transfer_out') return 3;
 		}
 		return 1; // 1 = expense
 	};
@@ -312,6 +314,8 @@
 							>
 								<option value={1}>Expense</option>
 								<option value={0}>Income</option>
+								<option value={2}>Transfer In</option>
+								<option value={3}>Transfer Out</option>
 							</select>
 						</div>
 						<div class="space-y-2 flex-1">

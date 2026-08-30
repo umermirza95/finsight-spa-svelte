@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { page } from '$app/stores';
 	import { apiFetch } from '$lib/api';
 	import { Upload, Trash2, ArrowLeft, Save, ChevronDown, MoreVertical, Edit2 } from 'lucide-svelte';
 	import TransactionPopup from '$lib/components/TransactionPopup.svelte';
@@ -99,6 +100,7 @@
 
 		const formData = new FormData();
 		formData.append('file', file);
+		formData.append('walletId', $page.params.id);
 
 		try {
 			const token = localStorage.getItem('authToken');
@@ -239,7 +241,7 @@
 	<!-- Header & Toolbar -->
 	<div class="flex items-center justify-between">
 		<div class="flex items-center gap-4">
-			<a href="/transactions" class="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-full hover:bg-secondary/50">
+			<a href={`/wallets/${$page.params.id}`} class="text-muted-foreground hover:text-foreground transition-colors p-2 rounded-full hover:bg-secondary/50">
 				<ArrowLeft size={20} />
 			</a>
 			
