@@ -10,7 +10,7 @@
 	let isLoadingBalances = $state(false);
 
 	let profitDistributionAmount = $state<number>(0);
-	let profitDistributionType = $state<number>(0); // 0 = Insurance, 1 = Withdrawal
+	let profitDistributionType = $state<number>(0); // 0 = Insurance, 1 = Withdrawal, 2 = Reinvestment
 	let isSubmittingDistribution = $state(false);
 
 	let profitDistributions = $state<any[]>([]);
@@ -260,6 +260,7 @@
 						>
 							<option value={0}>Insurance Reserve</option>
 							<option value={1}>Withdrawal</option>
+							<option value={2}>Reinvestment</option>
 						</select>
 					</div>
 
@@ -341,7 +342,7 @@
 									<tr class="bg-card hover:bg-secondary/10 transition-colors">
 										<td class="px-6 py-4 text-foreground font-medium">{formatDate(dist.date)}</td>
 										<td class="px-6 py-4 text-muted-foreground">
-											<span class="px-2.5 py-1 rounded-full text-xs font-semibold {dist.distributionTypeName === 'Insurance' ? 'bg-blue-500/10 text-blue-600' : 'bg-emerald-500/10 text-emerald-600'}">
+											<span class="px-2.5 py-1 rounded-full text-xs font-semibold {dist.distributionTypeName === 'Insurance' ? 'bg-blue-500/10 text-blue-600' : dist.distributionTypeName === 'Withdrawal' ? 'bg-emerald-500/10 text-emerald-600' : 'bg-purple-500/10 text-purple-600'}">
 												{dist.distributionTypeName}
 											</span>
 										</td>

@@ -59,6 +59,9 @@
 	let cancelTargetOrderId = $state<number | null>(null);
 	let isCancellingOrder = $state(false);
 
+	let isOpenLimitOrdersConfirmModalOpen = $state(false);
+	let isOpeningLimitOrders = $state(false);
+
 	let isCancelAllModalOpen = $state(false);
 	let isCancellingAllOrders = $state(false);
 
@@ -598,6 +601,33 @@
 		}
 	}
 
+	async function confirmOpenLimitOrders() {
+		isOpeningLimitOrders = true;
+		try {
+			const res = await apiFetch(`/api/Trading/open-limit-orders`, {
+				method: "POST",
+				headers: {
+					Authorization: `Bearer ${localStorage.getItem("authToken")}`,
+				},
+			});
+			if (res.ok) {
+				showToast("Limit orders opened successfully.", "success");
+				isOpenLimitOrdersConfirmModalOpen = false;
+				await loadActiveOrders(localStorage.getItem("authToken") || "");
+			} else {
+				const data = await res.json();
+				showToast(
+					data.error || "Failed to open limit orders.",
+					"error",
+				);
+			}
+		} catch (err: any) {
+			showToast(err.message || "Failed to open limit orders.", "error");
+		} finally {
+			isOpeningLimitOrders = false;
+		}
+	}
+
 	async function confirmMatch() {
 		if (!matchTargetSellOrder || !selectedBuyOrderId) return;
 		isMatching = true;
@@ -746,6 +776,16 @@
 					>
 						<Activity size={16} />
 						<span>Distribute Profit</span>
+					</button>
+					<button
+						onclick={() => {
+							isActionsOpen = false;
+							isOpenLimitOrdersConfirmModalOpen = true;
+						}}
+						class="w-full text-left px-4 py-2.5 text-sm hover:bg-secondary/50 flex items-center gap-2 transition-colors text-foreground"
+					>
+						<Activity size={16} />
+						<span>Open Limit Orders</span>
 					</button>
 					<button
 						onclick={() => {
@@ -2125,6 +2165,53 @@
 						<X size={16} />
 					{/if}
 					Yes, Cancel
+				</button>
+			</div>
+		</div>
+	</div>
+{/if}
+
+{#if isOpenLimitOrdersConfirmModalOpen}
+	<!-- svelte-ignore a11y_click_events_have_key_events -->
+	<!-- svelte-ignore a11y_no_static_element_interactions -->
+	<div
+		class="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in"
+		onclick={(e) => {
+			if (e.target === e.currentTarget) isOpenLimitOrdersConfirmModalOpen = false;
+		}}
+	>
+		<div
+			class="bg-card w-full max-w-md rounded-2xl shadow-2xl overflow-hidden border border-border animate-in zoom-in-95"
+		>
+			<div class="p-6">
+				<h3 class="text-xl font-bold text-foreground mb-4">
+					Open Limit Orders
+				</h3>
+				<p class="text-muted-foreground mb-6">
+					Are you sure you want to open new limit orders based on your trading config? This will cancel all existing open orders.
+				</p>
+			</div>
+			<div
+				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
+			>
+				<button
+					onclick={() => (isOpenLimitOrdersConfirmModalOpen = false)}
+					class="w-full sm:w-1/2 h-10 bg-secondary hover:bg-secondary/80 text-foreground font-semibold rounded-xl transition-colors"
+				>
+					Cancel
+				</button>
+				<button
+					onclick={confirmOpenLimitOrders}
+					disabled={isOpeningLimitOrders}
+					class="w-full sm:w-1/2 h-10 bg-primary hover:bg-primary/90 text-primary-foreground font-semibold rounded-xl transition-colors flex justify-center items-center gap-2"
+				>
+					{#if isOpeningLimitOrders}
+						<div
+							class="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin"
+						></div>
+					{:else}
+						<span>Confirm</span>
+					{/if}
 				</button>
 			</div>
 		</div>
