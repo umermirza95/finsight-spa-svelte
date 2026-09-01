@@ -26,6 +26,7 @@
 
 	let totalCapital = $state<number>(0);
 	let capitalUsed = $state<number>(0);
+	let cashLeft = $state<number>(0);
 	let availableTranches = $state<number>(0);
 
 	let isClosedTradesOpen = $state(false);
@@ -226,6 +227,7 @@
 			openTrades = trades.filter((t: any) => t.ticker !== "EUR.USD");
 			totalCapital = openData.totalCapital || 0;
 			capitalUsed = openData.capitalUsed || 0;
+			cashLeft = openData.cashLeft || 0;
 			availableTranches = openData.availableTranches || 0;
 		}
 	}
@@ -1038,10 +1040,10 @@
 						class="hidden sm:flex items-center gap-4 bg-background border border-border/60 rounded-xl px-4 py-2"
 					>
 						<span class="text-sm font-medium text-muted-foreground"
-							>Capital Deployed</span
+							>Cash Left</span
 						>
 						<span class="text-lg font-bold text-foreground">
-							{formatCurrency(totalCapitalDeployed)}
+							{formatCurrency(cashLeft)}
 						</span>
 					</div>
 					<Collapsible.Trigger

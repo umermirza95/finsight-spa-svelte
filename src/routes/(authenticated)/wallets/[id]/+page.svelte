@@ -511,7 +511,8 @@
 	onClose={closePopup} 
 	onSuccess={handleTransactionSuccess} 
 	{categories} 
-	transaction={selectedTransaction} 
+	transaction={selectedTransaction}
+	defaultWalletId={$page.params.id}
 />
 
 {#if isDeleteConfirmOpen}

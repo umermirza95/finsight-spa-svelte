@@ -8,7 +8,8 @@
 		onSuccess,
 		categories = [],
 		transaction = null,
-		isImported = false
+		isImported = false,
+		defaultWalletId = ''
 	} = $props<{
 		isOpen: boolean;
 		onClose: () => void;
@@ -16,6 +17,7 @@
 		categories?: any[];
 		transaction?: any;
 		isImported?: boolean;
+		defaultWalletId?: string;
 	}>();
 
 	let isSubmitting = $state(false);
@@ -30,6 +32,7 @@
 	let type = $state(1); // 1 = expense
 	let mode = $state(1); // 1 = cash
 	let comment = $state('');
+	let transferWalletId = $state('');
 
 	let wallets = $state<any[]>([]);
 	let fsWalletId = $state('');
@@ -70,7 +73,7 @@
 				type = parseType(transaction.type);
 				mode = parseMode(transaction.mode);
 				comment = transaction.comment || '';
-				fsWalletId = transaction.fsWalletId || (wallets.length > 0 ? wallets[0].id : '');
+				fsWalletId = transaction.fsWalletId || defaultWalletId || (wallets.length > 0 ? wallets[0].id : '');
 			} else {
 				amount = '';
 				currency = 'PKR';
@@ -80,7 +83,7 @@
 				type = 1;
 				mode = 1;
 				comment = '';
-				fsWalletId = wallets.length > 0 ? wallets[0].id : '';
+				fsWalletId = defaultWalletId || (wallets.length > 0 ? wallets[0].id : '');
 			}
 			errorMessage = '';
 			fetchWallets();
@@ -99,7 +102,7 @@
 				const data = await res.json();
 				wallets = data.data || [];
 				if (!fsWalletId && wallets.length > 0) {
-					fsWalletId = wallets[0].id;
+					fsWalletId = defaultWalletId || wallets[0].id;
 				}
 			}
 		} catch (e) {
@@ -115,9 +118,16 @@
 	});
 
 	async function handleSubmit() {
-		if (!amount || !categoryId) {
-			errorMessage = 'Amount and Category are required.';
-			return;
+		if (type === 2 || type === 3) {
+			if (!amount || !transferWalletId) {
+				errorMessage = 'Amount and Transfer Wallet are required.';
+				return;
+			}
+		} else {
+			if (!amount || !categoryId) {
+				errorMessage = 'Amount and Category are required.';
+				return;
+			}
 		}
 
 		isSubmitting = true;
@@ -128,13 +138,14 @@
 			const payload = {
 				amount: parseFloat(amount),
 				currency,
-				categoryId,
+				categoryId: (type === 2 || type === 3) ? null : categoryId,
 				subCategoryId: subCategoryId || null,
 				date,
 				type: Number(type),
 				mode: Number(mode),
 				comment,
-				fsWalletId
+				fsWalletId,
+				transferWalletId: (type === 2 || type === 3) ? transferWalletId : null
 			};
 
 			if (isImported && transaction) {
@@ -260,39 +271,6 @@
 						</select>
 					</div>
 
-					<!-- Category -->
-					<div class="flex gap-4">
-						<div class="space-y-2 flex-1">
-							<label class="text-sm font-semibold text-foreground">Category</label>
-							<select 
-								bind:value={categoryId}
-								onchange={() => subCategoryId = ''}
-								class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
-								required
-							>
-								<option value="" disabled>Select a category</option>
-								{#each categories as cat}
-									<option value={cat.id}>{cat.name}</option>
-								{/each}
-							</select>
-						</div>
-
-						{#if currentSubCategories.length > 0}
-							<div class="space-y-2 flex-1 animate-in fade-in slide-in-from-right-4 duration-200">
-								<label class="text-sm font-semibold text-foreground">Sub Category</label>
-								<select 
-									bind:value={subCategoryId}
-									class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
-								>
-									<option value="">None (Optional)</option>
-									{#each currentSubCategories as subCat}
-										<option value={subCat.id}>{subCat.name}</option>
-									{/each}
-								</select>
-							</div>
-						{/if}
-					</div>
-
 					<!-- Date -->
 					<div class="space-y-2">
 						<label class="text-sm font-semibold text-foreground">Date</label>
@@ -331,6 +309,56 @@
 							</select>
 						</div>
 					</div>
+
+					{#if type === 2 || type === 3}
+					<!-- Transfer Wallet -->
+					<div class="space-y-2 animate-in fade-in slide-in-from-top-2 duration-200">
+						<label class="text-sm font-semibold text-foreground">{type === 2 ? 'Transfer From' : 'Transfer To'}</label>
+						<select 
+							bind:value={transferWalletId}
+							class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
+							required
+						>
+							<option value="" disabled>Select a wallet</option>
+							{#each wallets.filter(w => w.id !== fsWalletId) as w}
+								<option value={w.id}>{w.name} ({w.fsCurrencyCode})</option>
+							{/each}
+						</select>
+					</div>
+					{:else}
+					<!-- Category -->
+					<div class="flex gap-4 animate-in fade-in slide-in-from-top-2 duration-200">
+						<div class="space-y-2 flex-1">
+							<label class="text-sm font-semibold text-foreground">Category</label>
+							<select 
+								bind:value={categoryId}
+								onchange={() => subCategoryId = ''}
+								class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
+								required
+							>
+								<option value="" disabled>Select a category</option>
+								{#each categories as cat}
+									<option value={cat.id}>{cat.name}</option>
+								{/each}
+							</select>
+						</div>
+
+						{#if currentSubCategories.length > 0}
+							<div class="space-y-2 flex-1 animate-in fade-in slide-in-from-right-4 duration-200">
+								<label class="text-sm font-semibold text-foreground">Sub Category</label>
+								<select 
+									bind:value={subCategoryId}
+									class="w-full px-3 py-2.5 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all text-foreground"
+								>
+									<option value="">None (Optional)</option>
+									{#each currentSubCategories as subCat}
+										<option value={subCat.id}>{subCat.name}</option>
+									{/each}
+								</select>
+							</div>
+						{/if}
+					</div>
+					{/if}
 
 					<!-- Comment -->
 					<div class="space-y-2">
