@@ -21,6 +21,10 @@
 	let openTrades = $state<any[]>([]);
 	let activeOrders = $state<any[]>([]);
 	let closedTrades = $state<any[]>([]);
+	let insuranceDistribution = $state<number>(0);
+	let reinvestment = $state<number>(0);
+	let withdrawal = $state<number>(0);
+	let insurancePayouts = $state<number>(0);
 	let isLoading = $state(true);
 	let errorMessage = $state("");
 
@@ -248,7 +252,13 @@
 		const closedData = await closedRes.json();
 		closedTrades = Array.isArray(closedData)
 			? closedData
-			: closedData.data || [];
+			: closedData.trades || [];
+		if (!Array.isArray(closedData)) {
+			insuranceDistribution = closedData.insuranceDistribution || 0;
+			reinvestment = closedData.reinvestment || 0;
+			withdrawal = closedData.withdrawal || 0;
+			insurancePayouts = closedData.insurancePayouts || 0;
+		}
 	}
 
 	async function loadActiveOrders(token: string) {

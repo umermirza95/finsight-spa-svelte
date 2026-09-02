@@ -28,7 +28,7 @@
 			
 			if (!closedRes.ok) throw new Error('Failed to fetch closed trades');
 			const closedDataResponse = await closedRes.json();
-			const closedTrades = Array.isArray(closedDataResponse) ? closedDataResponse : (closedDataResponse.data || []);
+			const closedTrades = Array.isArray(closedDataResponse) ? closedDataResponse : (closedDataResponse.trades || []);
 
 			// Group by month
 			const newProfits = Array(12).fill(0);
