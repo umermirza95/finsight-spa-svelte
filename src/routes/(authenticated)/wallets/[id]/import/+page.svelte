@@ -2,7 +2,7 @@
 	import { onMount } from 'svelte';
 	import { page } from '$app/stores';
 	import { apiFetch } from '$lib/api';
-	import { Upload, Trash2, ArrowLeft, Save, ChevronDown, MoreVertical, Edit2 } from 'lucide-svelte';
+	import { Upload, Trash2, ArrowLeft, Save, ChevronDown, MoreVertical, Edit2, RefreshCw, X } from 'lucide-svelte';
 	import TransactionPopup from '$lib/components/TransactionPopup.svelte';
 
 	let importedTransactions = $state<any[]>([]);
@@ -18,6 +18,11 @@
 
 	let isPopupOpen = $state(false);
 	let selectedTx = $state<any>(null);
+
+	let isTypePopupOpen = $state(false);
+	let selectedTypeTx = $state<any>(null);
+	let selectedNewType = $state('income');
+	let isChangingType = $state(false);
 
 	let isActionsOpen = $state(false);
 	let activeDropdownId = $state<string | null>(null);
@@ -235,6 +240,34 @@
 		selectedTx = null;
 		await loadData();
 	}
+
+	function openChangeTypePopup(tx: any) {
+		selectedTypeTx = tx;
+		selectedNewType = tx.type;
+		activeDropdownId = null;
+		isTypePopupOpen = true;
+	}
+
+	async function saveNewType() {
+		if (!selectedTypeTx) return;
+		isChangingType = true;
+		try {
+			const token = localStorage.getItem('authToken');
+			const res = await apiFetch(`/api/ImportTransaction/imported/${selectedTypeTx.id}/type`, {
+				method: 'PUT',
+				headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+				body: JSON.stringify({ type: selectedNewType })
+			});
+			if (!res.ok) throw new Error('Failed to change transaction type');
+			
+			isTypePopupOpen = false;
+			await loadData();
+		} catch (e: any) {
+			alert(`Error: ${e.message}`);
+		} finally {
+			isChangingType = false;
+		}
+	}
 </script>
 
 <div class="space-y-6 pb-12">
@@ -381,6 +414,13 @@
 													<Edit2 size={14} />
 													Save
 												</button>
+												<button 
+													onclick={() => openChangeTypePopup(tx)}
+													class="w-full flex items-center gap-2 px-3 py-2 text-sm rounded-lg hover:bg-secondary/50 transition-colors text-foreground font-medium"
+												>
+													<RefreshCw size={14} />
+													Change Type
+												</button>
 												<div class="h-px bg-border/50 my-1"></div>
 												<button 
 													onclick={() => { deleteItem(tx.id); activeDropdownId = null; }}
@@ -413,4 +453,47 @@
 		onClose={() => isPopupOpen = false} 
 		onSuccess={handleSaveSuccess} 
 	/>
+{/if}
+
+{#if isTypePopupOpen}
+	<div class="fixed inset-0 z-[60] flex items-center justify-center bg-background/80 backdrop-blur-sm">
+		<div class="bg-card border border-border/50 rounded-2xl shadow-lg w-full max-w-sm p-6 relative">
+			<button 
+				onclick={() => isTypePopupOpen = false}
+				class="absolute top-4 right-4 text-muted-foreground hover:bg-secondary/50 p-2 rounded-lg transition-colors"
+			>
+				<X size={16} />
+			</button>
+			<h3 class="text-lg font-semibold text-foreground mb-4">Change Transaction Type</h3>
+			
+			<div class="space-y-4">
+				<div>
+					<label class="block text-sm font-medium text-muted-foreground mb-1">Select new type</label>
+					<select 
+						bind:value={selectedNewType}
+						class="w-full bg-background border border-border/60 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+					>
+						<option value="income">Income</option>
+						<option value="expense">Expense</option>
+					</select>
+				</div>
+
+				<div class="flex justify-end gap-3 pt-4">
+					<button 
+						onclick={() => isTypePopupOpen = false}
+						class="px-4 py-2 text-sm font-medium text-foreground bg-secondary/50 hover:bg-secondary/80 rounded-xl transition-colors"
+					>
+						Cancel
+					</button>
+					<button 
+						onclick={saveNewType}
+						disabled={isChangingType}
+						class="px-4 py-2 text-sm font-medium text-primary-foreground bg-primary hover:bg-primary/90 rounded-xl transition-colors disabled:opacity-50"
+					>
+						{isChangingType ? 'Saving...' : 'Save Changes'}
+					</button>
+				</div>
+			</div>
+		</div>
+	</div>
 {/if}
