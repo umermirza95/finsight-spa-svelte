@@ -4,11 +4,11 @@
 	// The VAPID public key provided by the user
 	const VAPID_PUBLIC_KEY = 'BNcga3MpbMQqV6WHPH54Up6_DLwuNbHRmmJc2bjjp36xHRTVSKRS4Xb24-grVZOJBzSjq9ZcCtlrY6rZxXw-4wU';
 
-	let permissionState: NotificationPermission = 'default';
-	let isSupported = false;
-	let subscription: PushSubscription | null = null;
-	let loading = false;
-	let message = '';
+	let permissionState: NotificationPermission = $state('default');
+	let isSupported = $state(false);
+	let subscription: PushSubscription | null = $state(null);
+	let loading = $state(false);
+	let message = $state('');
 
 	onMount(async () => {
 		if ('serviceWorker' in navigator && 'PushManager' in window) {
