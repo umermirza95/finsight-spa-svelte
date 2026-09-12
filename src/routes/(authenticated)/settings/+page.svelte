@@ -8,11 +8,6 @@
 </svelte:head>
 
 <div class="max-w-4xl mx-auto space-y-8">
-	<div>
-		<h2 class="text-2xl font-bold text-primary mb-1">Settings</h2>
-		<p class="text-sm text-muted-foreground">Manage your account preferences and application settings.</p>
-	</div>
-
 	<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
 		<!-- Sidebar navigation for settings (optional, but looks modern) -->
 		<div class="hidden md:block col-span-1 space-y-1">

@@ -60,10 +60,16 @@
 			});
 
 			// Send to backend
+			const token = localStorage.getItem('authToken');
+			if (!token) {
+				throw new Error('Not authenticated.');
+			}
+
 			const res = await apiFetch('/api/push-notifications/subscribe', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json'
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
 				},
 				body: JSON.stringify({
 					endpoint: sub.endpoint,
@@ -99,9 +105,15 @@
 				const successful = await subscription.unsubscribe();
 				if (successful) {
 					// Notify backend
-					await apiFetch(`/api/push-notifications/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, {
-						method: 'DELETE'
-					}).catch(e => console.error('Failed to notify backend of unsubscribe:', e));
+					const token = localStorage.getItem('authToken');
+					if (token) {
+						await apiFetch(`/api/push-notifications/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+							method: 'DELETE',
+							headers: {
+								'Authorization': `Bearer ${token}`
+							}
+						}).catch(e => console.error('Failed to notify backend of unsubscribe:', e));
+					}
 					
 					subscription = null;
 					message = 'Successfully unsubscribed.';

@@ -53,6 +53,7 @@
 		if (path.startsWith('/trading/labs')) return { title: 'Trading Labs', desc: 'Analyze historical market data and test new strategies in a sandboxed environment.' };
 		if (path.startsWith('/trading/distribution')) return { title: 'Profit Distribution', desc: 'Manage and distribute your trading profits.' };
 		if (path.startsWith('/trading')) return { title: 'Trading', desc: 'Execute trades and monitor market movements.' };
+		if (path.startsWith('/settings')) return { title: 'Settings', desc: 'Manage your account preferences and application settings.' };
 		return { title: 'Overview', desc: 'Welcome back.' };
 	});
 </script>
