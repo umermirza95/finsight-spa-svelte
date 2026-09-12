@@ -11,10 +11,24 @@
 		TrendingUp,
 		Search,
 		Bell,
-		Hexagon
+		Hexagon,
+		Settings,
+		LogOut
 	} from 'lucide-svelte';
 
+	import { fly } from 'svelte/transition';
+
 	let { children } = $props();
+
+	let isProfileMenuOpen = $state(false);
+
+	function toggleProfileMenu() {
+		isProfileMenuOpen = !isProfileMenuOpen;
+	}
+
+	function closeProfileMenu() {
+		isProfileMenuOpen = false;
+	}
 
 	function handleLogout() {
 		localStorage.removeItem('authToken');
@@ -79,6 +93,27 @@
 		</div>
 	</aside>
 
+	{#snippet profileDropdown()}
+		{#if isProfileMenuOpen}
+			<!-- svelte-ignore a11y_consider_explicit_label -->
+			<button class="fixed inset-0 z-40 bg-transparent w-full h-full cursor-default" onclick={closeProfileMenu}></button>
+			<div 
+				transition:fly={{ y: 10, duration: 200 }}
+				class="absolute left-0 lg:right-0 lg:left-auto top-[calc(100%+0.5rem)] w-48 bg-card rounded-2xl shadow-lg border border-border/60 z-50 py-2 overflow-hidden"
+			>
+				<a href="/settings" onclick={closeProfileMenu} class="flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-muted text-primary/80 hover:text-primary transition-colors">
+					<Settings size={16} />
+					Settings
+				</a>
+				<div class="h-px bg-border/60 my-1 mx-2"></div>
+				<button onclick={handleLogout} class="w-full flex items-center gap-3 px-4 py-2.5 text-sm font-medium hover:bg-destructive/10 text-destructive transition-colors text-left">
+					<LogOut size={16} />
+					Log Out
+				</button>
+			</div>
+		{/if}
+	{/snippet}
+
 	<!-- Main Content Area -->
 	<main class="flex-1 flex flex-col h-screen overflow-hidden bg-background">
 		<!-- Topbar -->
@@ -91,9 +126,12 @@
 			
 			<!-- Mobile Greeting -->
 			<div class="flex lg:hidden items-center gap-3">
-				<button class="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-all shrink-0">
-					<img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" class="w-full h-full object-cover" />
-				</button>
+				<div class="relative">
+					<button onclick={toggleProfileMenu} class="w-10 h-10 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-all shrink-0 block">
+						<img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" class="w-full h-full object-cover block" />
+					</button>
+					{@render profileDropdown()}
+				</div>
 				<div class="flex flex-col justify-center">
 					<h1 class="text-base font-bold text-primary leading-tight mb-0.5">{pageInfo.title}</h1>
 					<p class="text-[11px] text-muted-foreground line-clamp-1">{pageInfo.desc}</p>
@@ -121,9 +159,12 @@
 				</button>
 
 				<!-- Profile Avatar (Desktop) -->
-				<button class="hidden lg:block w-12 h-12 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-all">
-					<img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" class="w-full h-full object-cover" />
-				</button>
+				<div class="relative hidden lg:block">
+					<button onclick={toggleProfileMenu} class="w-12 h-12 rounded-full overflow-hidden border-2 border-transparent hover:border-primary transition-all block">
+						<img src="https://i.pravatar.cc/150?u=a042581f4e29026704d" alt="Profile" class="w-full h-full object-cover block" />
+					</button>
+					{@render profileDropdown()}
+				</div>
 			</div>
 		</header>
 

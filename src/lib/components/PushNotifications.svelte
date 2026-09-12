@@ -58,11 +58,34 @@
 				applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
 			});
 
+			// Send to backend
+			const token = localStorage.getItem('authToken');
+			if (!token) {
+				throw new Error('Not authenticated.');
+			}
+
+			const res = await fetch('http://localhost:5000/api/push-notifications/subscribe', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+					'Authorization': `Bearer ${token}`
+				},
+				body: JSON.stringify({
+					endpoint: sub.endpoint,
+					keys: {
+						p256dh: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('p256dh')!))),
+						auth: btoa(String.fromCharCode.apply(null, new Uint8Array(sub.getKey('auth')!)))
+					}
+				})
+			});
+
+			if (!res.ok) {
+				const errorData = await res.json().catch(() => ({}));
+				throw new Error(errorData.message || 'Failed to save subscription on server.');
+			}
+
 			subscription = sub;
 			message = 'Successfully subscribed to push notifications!';
-			
-			// Normally you would send this subscription object to your server here
-			console.log('Push Subscription:', JSON.stringify(sub));
 		} catch (error) {
 			console.error('Failed to subscribe the user: ', error);
 			message = 'Failed to subscribe: ' + (error as Error).message;
@@ -76,8 +99,21 @@
 		message = '';
 		try {
 			if (subscription) {
+				const endpoint = subscription.endpoint;
+				
 				const successful = await subscription.unsubscribe();
 				if (successful) {
+					// Notify backend
+					const token = localStorage.getItem('authToken');
+					if (token) {
+						await fetch(`http://localhost:5000/api/push-notifications/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+							method: 'DELETE',
+							headers: {
+								'Authorization': `Bearer ${token}`
+							}
+						}).catch(e => console.error('Failed to notify backend of unsubscribe:', e));
+					}
+					
 					subscription = null;
 					message = 'Successfully unsubscribed.';
 				}
