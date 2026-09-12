@@ -8,7 +8,7 @@
 		<h1 class="text-4xl font-bold tracking-tight">Welcome to FinSight</h1>
 		<p class="text-muted-foreground">A modern SPA built with SvelteKit, Tailwind, and Shadcn.</p>
 		<div class="pb-8">
-			<Button>Get Started</Button>
+			<Button href="/login">Get Started</Button>
 		</div>
 		<PushNotifications />
 	</div>
