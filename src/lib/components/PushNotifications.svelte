@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
+	import { apiFetch } from '$lib/api';
 
 	// The VAPID public key provided by the user
 	const VAPID_PUBLIC_KEY = 'BNcga3MpbMQqV6WHPH54Up6_DLwuNbHRmmJc2bjjp36xHRTVSKRS4Xb24-grVZOJBzSjq9ZcCtlrY6rZxXw-4wU';
@@ -59,16 +60,10 @@
 			});
 
 			// Send to backend
-			const token = localStorage.getItem('authToken');
-			if (!token) {
-				throw new Error('Not authenticated.');
-			}
-
-			const res = await fetch('http://localhost:5000/api/push-notifications/subscribe', {
+			const res = await apiFetch('/api/push-notifications/subscribe', {
 				method: 'POST',
 				headers: {
-					'Content-Type': 'application/json',
-					'Authorization': `Bearer ${token}`
+					'Content-Type': 'application/json'
 				},
 				body: JSON.stringify({
 					endpoint: sub.endpoint,
@@ -104,15 +99,9 @@
 				const successful = await subscription.unsubscribe();
 				if (successful) {
 					// Notify backend
-					const token = localStorage.getItem('authToken');
-					if (token) {
-						await fetch(`http://localhost:5000/api/push-notifications/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, {
-							method: 'DELETE',
-							headers: {
-								'Authorization': `Bearer ${token}`
-							}
-						}).catch(e => console.error('Failed to notify backend of unsubscribe:', e));
-					}
+					await apiFetch(`/api/push-notifications/unsubscribe?endpoint=${encodeURIComponent(endpoint)}`, {
+						method: 'DELETE'
+					}).catch(e => console.error('Failed to notify backend of unsubscribe:', e));
 					
 					subscription = null;
 					message = 'Successfully unsubscribed.';
