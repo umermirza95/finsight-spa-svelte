@@ -75,7 +75,7 @@
 			const amount = parseFloat(t.amount);
 			
 			
-			
+			//sdlakhfklsdg daslkhgldkfhg daklghdlfksh
 			if (t.type === 'income') {
 				newIncome[month] += amount;
 				incomeSum += amount;
