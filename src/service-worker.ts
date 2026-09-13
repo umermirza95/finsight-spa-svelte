@@ -82,17 +82,26 @@ sw.addEventListener('fetch', (event) => {
 
 // Push notification listener
 sw.addEventListener('push', (event) => {
-	const data = event.data ? event.data.json() : { title: 'Finsight', body: 'New notification!' };
+	let data: any = { title: 'Finsight', body: 'New notification!' };
+	console.log('Push event received:', event);
+	try {
+		if (event.data) {
+			data = event.data.json();
+		}
+	} catch (err) {
+		console.error('Failed to parse push JSON, falling back to text', err);
+		data.body = event.data ? event.data.text() : data.body;
+	}
 	
 	const options: NotificationOptions = {
 		body: data.body,
-		icon: '/icons/pwa-icon.svg',
-		badge: '/icons/pwa-icon.svg',
 		data: data.url || '/'
 	};
 
 	event.waitUntil(
 		sw.registration.showNotification(data.title || 'Finsight', options)
+			.then(() => console.log('Notification shown successfully!'))
+			.catch((err) => console.error('Failed to show notification:', err))
 	);
 });
 
