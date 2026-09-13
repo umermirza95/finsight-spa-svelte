@@ -9,17 +9,17 @@
 
 <div class="max-w-4xl mx-auto space-y-8">
 	<div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-		<!-- Sidebar navigation for settings (optional, but looks modern) -->
-		<div class="hidden md:block col-span-1 space-y-1">
-			<button class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium transition-colors">
+		<!-- Sidebar navigation for settings -->
+		<div class="flex overflow-x-auto md:flex-col col-span-1 gap-2 md:gap-0 md:space-y-1 pb-2 md:pb-0 scrollbar-hide">
+			<button class="shrink-0 w-auto md:w-full flex items-center gap-2 md:gap-3 px-4 py-2.5 rounded-xl bg-primary text-primary-foreground text-sm font-medium transition-colors">
 				<BellRing size={16} />
 				Notifications
 			</button>
-			<button class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-muted text-primary/70 hover:text-primary text-sm font-medium transition-colors">
+			<button class="shrink-0 w-auto md:w-full flex items-center gap-2 md:gap-3 px-4 py-2.5 rounded-xl hover:bg-muted text-primary/70 hover:text-primary text-sm font-medium transition-colors">
 				<Shield size={16} />
 				Security
 			</button>
-			<button class="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-muted text-primary/70 hover:text-primary text-sm font-medium transition-colors">
+			<button class="shrink-0 w-auto md:w-full flex items-center gap-2 md:gap-3 px-4 py-2.5 rounded-xl hover:bg-muted text-primary/70 hover:text-primary text-sm font-medium transition-colors">
 				<Smartphone size={16} />
 				Devices
 			</button>

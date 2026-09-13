@@ -3,7 +3,7 @@
 	import { apiFetch } from '$lib/api';
 
 	// The VAPID public key provided by the user
-	const VAPID_PUBLIC_KEY = 'BNcga3MpbMQqV6WHPH54Up6_DLwuNbHRmmJc2bjjp36xHRTVSKRS4Xb24-grVZOJBzSjq9ZcCtlrY6rZxXw-4wU';
+	const VAPID_PUBLIC_KEY = 'BKzuNr1pM4AXqWI4SFPgEKfyJ4d0dDsCYsCZjSqGbIdks8hNQ4DQ7IgyexwBNEIuF94618HllmZTUdZjpgjKotk';
 
 	let permissionState: NotificationPermission = $state('default');
 	let isSupported = $state(false);
