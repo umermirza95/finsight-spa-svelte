@@ -3,6 +3,7 @@
 	import Chart from 'chart.js/auto';
 	import { ChevronDown } from 'lucide-svelte';
 	import { apiFetch } from '$lib/api';
+	import { goto } from '$app/navigation';
 
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
@@ -73,13 +74,12 @@
 			const month = date.getMonth(); // 0 to 11
 			const amount = parseFloat(t.amount);
 			
-			// t.type: 0 for Income, 1 for Expense, or check string if it's enum string
-			const isIncome = t.type === 'Income' || t.type === 0 || t.type === 'income';
 			
-			if (isIncome) {
+			
+			if (t.type === 'income') {
 				newIncome[month] += amount;
 				incomeSum += amount;
-			} else {
+			} else if (t.type === 'expense') {
 				newExpense[month] += Math.abs(amount);
 				expenseSum += Math.abs(amount);
 			}
@@ -132,6 +132,40 @@
 				options: {
 					responsive: true,
 					maintainAspectRatio: false,
+					onHover: (event, elements, chart) => {
+						if (elements && elements.length) {
+							(event.native.target as HTMLElement).style.cursor = 'pointer';
+						} else {
+							(event.native.target as HTMLElement).style.cursor = 'default';
+						}
+					},
+					onClick: (event, elements, chart) => {
+						const activeElements = chart.getElementsAtEventForMode(event, 'nearest', { intersect: true }, true);
+						if (activeElements.length > 0) {
+							const element = activeElements[0];
+							const datasetIndex = element.datasetIndex;
+							const index = element.index;
+							
+							const startDate = new Date(selectedYear, index, 1);
+							const endDate = new Date(selectedYear, index + 1, 0);
+							
+							const getLocalDateString = (date: Date) => {
+								const y = date.getFullYear();
+								const m = String(date.getMonth() + 1).padStart(2, '0');
+								const d = String(date.getDate()).padStart(2, '0');
+								return `${y}-${m}-${d}`;
+							};
+							
+							const type = datasetIndex === 0 ? 'Income' : 'Expense';
+							
+							const params = new URLSearchParams();
+							params.append('From', getLocalDateString(startDate));
+							params.append('To', getLocalDateString(endDate));
+							params.append('Type', type);
+							
+							goto(`/transactions?${params.toString()}`);
+						}
+					},
 					plugins: {
 						legend: {
 							display: false // Custom legend is built in HTML

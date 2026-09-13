@@ -3,7 +3,7 @@
 	import { Input } from "$lib/components/ui/input";
 	import { Mail, Lock, EyeOff, Eye } from "lucide-svelte";
 	import { goto } from "$app/navigation";
-	import { isAuthenticated } from "$lib/stores/auth";
+	import { isAuthenticated, userStore } from "$lib/stores/auth";
 	import { apiFetch } from "$lib/api";
 
 	// Simple theme toggle for demonstration
@@ -52,6 +52,10 @@
 
 			const data = await res.json();
 			localStorage.setItem("authToken", data.token);
+			if (data.user) {
+				localStorage.setItem("user", JSON.stringify(data.user));
+				userStore.set(data.user);
+			}
 			$isAuthenticated = true;
 			goto("/dashboard");
 		} catch (error) {

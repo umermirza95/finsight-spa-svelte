@@ -2,9 +2,10 @@
 	import { onMount } from "svelte";
 	import Chart from "chart.js/auto";
 
-	let { transactions = [], categories = [] } = $props<{
+	let { transactions = [], categories = [], targetCurrency = "USD" } = $props<{
 		transactions: any[];
 		categories: any[];
+		targetCurrency?: string;
 	}>();
 
 	let chartCanvas: HTMLCanvasElement;
@@ -112,7 +113,8 @@
 								if (context.parsed !== null) {
 									label += new Intl.NumberFormat("en-US", {
 										style: "currency",
-										currency: "USD",
+										currency: targetCurrency,
+										currencyDisplay: "narrowSymbol",
 									}).format(context.parsed);
 								}
 								return label;
@@ -210,7 +212,8 @@
 					<span class="text-2xl font-extrabold text-foreground">
 						{new Intl.NumberFormat("en-US", {
 							style: "currency",
-							currency: "USD",
+							currency: targetCurrency,
+							currencyDisplay: "narrowSymbol",
 							maximumFractionDigits: 0,
 						}).format(chartData.data.reduce((a, b) => a + b, 0))}
 					</span>

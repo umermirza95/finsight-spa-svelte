@@ -8,6 +8,7 @@
 	let { 
 		transactions = [],
 		categories = [],
+		targetCurrency = 'USD',
 		isLoading = false,
 		errorMessage = '',
 		onedit = (tx: any) => {},
@@ -15,6 +16,7 @@
 	} = $props<{
 		transactions?: any[];
 		categories?: any[];
+		targetCurrency?: string;
 		isLoading?: boolean;
 		errorMessage?: string;
 		onedit?: (tx: any) => void;
@@ -50,7 +52,11 @@
 
 	function formatCurrency(amount: number | string, currency: string = 'USD') {
 		const val = typeof amount === 'string' ? parseFloat(amount) : amount;
-		return new Intl.NumberFormat('en-US', { style: 'currency', currency }).format(val);
+		return new Intl.NumberFormat('en-US', { 
+			style: 'currency', 
+			currency,
+			currencyDisplay: 'narrowSymbol'
+		}).format(val);
 	}
 
 	function formatDate(dateString: string) {
@@ -104,11 +110,11 @@
 						</td>
 						<td class="px-6 py-4">
 							<div class="font-bold {isIncome ? 'text-green-600' : 'text-red-600'}">
-								{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.amount)))}
+								{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.amount)), targetCurrency)}
 							</div>
 							{#if tx.baseAmount && parseFloat(tx.baseAmount) !== parseFloat(tx.amount)}
 								<div class="text-xs text-muted-foreground mt-0.5 font-medium">
-									{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.baseAmount)), tx.currency || 'PKR')}
+									{isIncome ? '+' : '-'}{formatCurrency(Math.abs(parseFloat(tx.baseAmount)), tx.currency || targetCurrency)}
 								</div>
 							{/if}
 						</td>
