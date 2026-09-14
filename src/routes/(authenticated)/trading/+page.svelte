@@ -1976,16 +1976,21 @@
 											{buyTrade.externalId}
 										</div>
 									</div>
-									<div class="text-right">
-										<div class="font-bold text-foreground">
-											{buyTrade.quantity} Shares
+									<div class="text-right flex items-center gap-6">
+										<div class="text-right">
+											{@const pl = (matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity}
+											<div class="font-bold {pl >= 0 ? 'text-green-600' : 'text-red-600'}">
+												{pl >= 0 ? "+" : ""}{formatCurrency(pl)}
+											</div>
+											<div class="text-xs text-muted-foreground">Est. P/L</div>
 										</div>
-										<div
-											class="text-sm text-muted-foreground"
-										>
-											@ {formatCurrency(
-												buyTrade.tradePrice,
-											)}
+										<div class="text-right">
+											<div class="font-bold text-foreground">
+												{buyTrade.quantity} Shares
+											</div>
+											<div class="text-sm text-muted-foreground">
+												@ {formatCurrency(buyTrade.tradePrice)}
+											</div>
 										</div>
 									</div>
 								</div>
