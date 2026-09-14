@@ -1978,9 +1978,8 @@
 									</div>
 									<div class="text-right flex items-center gap-6">
 										<div class="text-right">
-											{@const pl = (matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity}
-											<div class="font-bold {pl >= 0 ? 'text-green-600' : 'text-red-600'}">
-												{pl >= 0 ? "+" : ""}{formatCurrency(pl)}
+											<div class="font-bold {((matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity) >= 0 ? 'text-green-600' : 'text-red-600'}">
+												{((matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity) >= 0 ? "+" : ""}{formatCurrency(((matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity))}
 											</div>
 											<div class="text-xs text-muted-foreground">Est. P/L</div>
 										</div>
