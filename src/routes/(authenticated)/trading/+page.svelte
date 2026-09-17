@@ -101,6 +101,7 @@
 	let editDistancePerTranche = $state(0);
 	let editServerIp = $state("");
 	let editTicker = $state("");
+	let editInsuranceWithold = $state<number | null>(null);
 
 	function toggleTicker(ticker: string) {
 		expandedTickers[ticker] = !expandedTickers[ticker];
@@ -431,6 +432,7 @@
 		editDistancePerTranche = tradingConfig.distancePerTranche || 0;
 		editServerIp = tradingConfig.serverIp || "";
 		editTicker = tradingConfig.ticker || "";
+		editInsuranceWithold = tradingConfig.insuranceWithold ?? null;
 		isConfigModalOpen = true;
 	}
 
@@ -446,6 +448,7 @@
 				distancePerTranche: editDistancePerTranche,
 				serverIp: editServerIp,
 				ticker: editTicker,
+				insuranceWithold: editInsuranceWithold,
 			};
 			const res = await apiFetch("/api/Trading/config", {
 				method: "PUT",
@@ -1795,6 +1798,18 @@
 						class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
 					/>
 				</div>
+				<div class="space-y-2">
+					<label class="text-sm font-medium text-foreground"
+						>Insurance Withhold (%)</label
+					>
+					<input
+						type="number"
+						step="0.01"
+						bind:value={editInsuranceWithold}
+						placeholder="Leave empty for no withhold"
+						class="w-full h-10 px-3 bg-background border border-border/60 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+					/>
+				</div>
 			</div>
 			<div
 				class="p-6 border-t border-border/50 flex flex-col sm:flex-row gap-3"
@@ -1981,7 +1996,7 @@
 											<div class="font-bold {((matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity) >= 0 ? 'text-green-600' : 'text-red-600'}">
 												{((matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity) >= 0 ? "+" : ""}{formatCurrency(((matchTargetSellOrder.tradePrice - buyTrade.tradePrice) * buyTrade.quantity))}
 											</div>
-											<div class="text-xs text-muted-foreground">Est. P/L</div>
+											<div class="text-xs text-muted-foreground">P/L</div>
 										</div>
 										<div class="text-right">
 											<div class="font-bold text-foreground">
