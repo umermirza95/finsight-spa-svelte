@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, untrack } from 'svelte';
 	import Chart from 'chart.js/auto';
 	import { ChevronDown } from 'lucide-svelte';
 	import { apiFetch } from '$lib/api';
@@ -163,7 +163,10 @@
 	}
 
 	$effect(() => {
-		fetchTransactionsForYear(selectedYear);
+		const year = selectedYear;
+		untrack(() => {
+			fetchTransactionsForYear(year);
+		});
 	});
 
 	function handleYearSelect(year: number) {
