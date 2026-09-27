@@ -7,31 +7,46 @@
 	import CategoryAverageExpensePieChart from "$lib/components/CategoryAverageExpensePieChart.svelte";
 
 	let currentYearTransactions = $state<any[] | null>(null);
+	let categories = $state<any[] | null>(null);
 
 	onMount(async () => {
 		try {
 			const token = localStorage.getItem("authToken");
 			if (!token) {
 				currentYearTransactions = [];
+				categories = [];
 				return;
 			}
 			const currentYear = new Date().getFullYear();
 			const fromDate = `${currentYear}-01-01`;
 			const toDate = `${currentYear}-12-31`;
 
-			const response = await apiFetch(`/api/Transactions?From=${fromDate}&To=${toDate}`, {
-				headers: { Authorization: `Bearer ${token}` }
-			});
+			const [txResponse, catResponse] = await Promise.all([
+				apiFetch(`/api/Transactions?From=${fromDate}&To=${toDate}`, {
+					headers: { Authorization: `Bearer ${token}` }
+				}),
+				apiFetch(`/api/Category`, {
+					headers: { Authorization: `Bearer ${token}` }
+				})
+			]);
 
-			if (response.ok) {
-				const json = await response.json();
+			if (txResponse.ok) {
+				const json = await txResponse.json();
 				currentYearTransactions = json.data?.transactions || [];
 			} else {
 				currentYearTransactions = [];
 			}
+
+			if (catResponse.ok) {
+				const json = await catResponse.json();
+				categories = json.data?.categories || [];
+			} else {
+				categories = [];
+			}
 		} catch (error) {
 			console.error(error);
 			currentYearTransactions = [];
+			categories = [];
 		}
 	});
 </script>
@@ -51,11 +66,11 @@
 	</div>
 	
 	<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-		{#if currentYearTransactions !== null}
+		{#if currentYearTransactions !== null && categories !== null}
 			<!-- Category Expense Line Chart -->
-			<CategoryExpenseLineChart initialTransactions={currentYearTransactions} />
+			<CategoryExpenseLineChart initialTransactions={currentYearTransactions} initialCategories={categories} />
 			<!-- Category Average Expense Pie Chart -->
-			<CategoryAverageExpensePieChart initialTransactions={currentYearTransactions} />
+			<CategoryAverageExpensePieChart initialTransactions={currentYearTransactions} initialCategories={categories} />
 		{:else}
 			<div class="bg-card border border-border/50 rounded-3xl p-6 flex items-center justify-center h-full min-h-[350px]">
 				<div class="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>

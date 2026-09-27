@@ -4,7 +4,7 @@
 	import { ChevronDown } from 'lucide-svelte';
 	import { apiFetch } from '$lib/api';
 
-	let { initialTransactions = null } = $props<{ initialTransactions?: any[] | null }>();
+	let { initialTransactions = null, initialCategories = null } = $props<{ initialTransactions?: any[] | null, initialCategories?: any[] | null }>();
 
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
@@ -23,22 +23,6 @@
 
 	let allCategories = $state<any[]>([]);
 	let transactions = $state<any[]>([]);
-
-	async function fetchCategories() {
-		try {
-			const token = localStorage.getItem('authToken');
-			if (!token) return;
-			const res = await apiFetch('/api/Category', {
-				headers: { 'Authorization': `Bearer ${token}` }
-			});
-			if (res.ok) {
-				const json = await res.json();
-				allCategories = json.data?.categories || [];
-			}
-		} catch (e) {
-			console.error(e);
-		}
-	}
 
 	async function fetchTransactionsForYear(year: number) {
 		isLoading = true;
@@ -195,11 +179,14 @@
 	}
 
 	onMount(() => {
-		fetchCategories().then(() => {
-			if (transactions.length > 0) {
-				updateChart();
-			}
-		});
+		if (initialCategories !== null) {
+			allCategories = initialCategories;
+		}
+
+		if (transactions.length > 0) {
+			updateChart();
+		}
+		
 		document.addEventListener('click', handleOutsideClick);
 		return () => {
 			document.removeEventListener('click', handleOutsideClick);

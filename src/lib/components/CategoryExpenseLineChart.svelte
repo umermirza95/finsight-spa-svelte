@@ -4,7 +4,7 @@
 	import { ChevronDown, Check } from 'lucide-svelte';
 	import { apiFetch } from '$lib/api';
 
-	let { initialTransactions = null } = $props<{ initialTransactions?: any[] | null }>();
+	let { initialTransactions = null, initialCategories = null } = $props<{ initialTransactions?: any[] | null, initialCategories?: any[] | null }>();
 
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
@@ -25,26 +25,6 @@
 	let allCategories = $state<any[]>([]);
 	let selectedCategoryIds = $state<string[]>([]);
 	let transactions = $state<any[]>([]);
-
-	async function fetchCategories() {
-		try {
-			const token = localStorage.getItem('authToken');
-			if (!token) return;
-			const res = await apiFetch('/api/Category', {
-				headers: { 'Authorization': `Bearer ${token}` }
-			});
-			if (res.ok) {
-				const json = await res.json();
-				allCategories = json.data?.categories || [];
-				if (allCategories.length > 0 && selectedCategoryIds.length === 0) {
-					// Select first 3 categories by default
-					selectedCategoryIds = allCategories.slice(0, 3).map(c => c.id);
-				}
-			}
-		} catch (e) {
-			console.error(e);
-		}
-	}
 
 	async function fetchTransactionsForYear(year: number) {
 		isLoading = true;
@@ -227,11 +207,18 @@
 	}
 
 	onMount(() => {
-		fetchCategories().then(() => {
-			if (transactions.length > 0) {
-				updateChart();
+		if (initialCategories !== null) {
+			allCategories = initialCategories;
+			if (allCategories.length > 0 && selectedCategoryIds.length === 0) {
+				// Select first 3 categories by default
+				selectedCategoryIds = allCategories.slice(0, 3).map(c => c.id);
 			}
-		});
+		}
+
+		if (transactions.length > 0) {
+			updateChart();
+		}
+
 		document.addEventListener('click', handleOutsideClick);
 		return () => {
 			document.removeEventListener('click', handleOutsideClick);
