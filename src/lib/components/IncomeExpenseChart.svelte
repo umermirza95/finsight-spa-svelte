@@ -5,6 +5,8 @@
 	import { apiFetch } from '$lib/api';
 	import { goto } from '$app/navigation';
 
+	let { initialTransactions = null } = $props<{ initialTransactions?: any[] | null }>();
+	
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
 	
@@ -32,6 +34,13 @@
 		isLoading = true;
 		errorMessage = '';
 		try {
+			if (year === currentYear && initialTransactions !== null) {
+				aggregateData(initialTransactions);
+				updateChart();
+				isLoading = false;
+				return;
+			}
+
 			const token = localStorage.getItem('authToken');
 			if (!token) {
 				throw new Error('Not authenticated');

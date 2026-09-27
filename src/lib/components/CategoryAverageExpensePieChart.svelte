@@ -4,6 +4,8 @@
 	import { ChevronDown } from 'lucide-svelte';
 	import { apiFetch } from '$lib/api';
 
+	let { initialTransactions = null } = $props<{ initialTransactions?: any[] | null }>();
+
 	let canvas: HTMLCanvasElement;
 	let chartInstance: Chart | null = null;
 	
@@ -42,6 +44,13 @@
 		isLoading = true;
 		errorMessage = '';
 		try {
+			if (year === currentYear && initialTransactions !== null) {
+				transactions = initialTransactions;
+				updateChart();
+				isLoading = false;
+				return;
+			}
+
 			const token = localStorage.getItem('authToken');
 			if (!token) throw new Error('Not authenticated');
 
